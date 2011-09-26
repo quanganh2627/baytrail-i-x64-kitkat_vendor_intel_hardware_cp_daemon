@@ -291,7 +291,7 @@ int cpdSendCposResponse(pCPD_CONTEXT pCpd, char *pBuff)
 	char pTxBuffer[MODEM_MUX_AT_CMD_MAX_LENGTH +1];
 
     CPD_LOG(CPD_LOG_ID_TXT , "\n  %u: %s()\n", getMsecTime(), __FUNCTION__);
-    sprintf(pTxBuffer, "%s%s%s%s", AT_CMD_CRLF, AT_CMD_AT, AT_CMD_CPOS, AT_CMD_CRLF);
+    sprintf(pTxBuffer, "%s%s%s%c", AT_CMD_CRLF, AT_CMD_AT, AT_CMD_CPOS, AT_CMD_CR_CHR);
 //    sprintf(pTxBuffer, "%s%s%s: ", AT_CMD_CRLF, AT_CMD_AT, AT_CMD_CPOS);
     len = len + strlen(pTxBuffer);
     rr = cpdModemSendCommand(pCpd, pTxBuffer, strlen(pTxBuffer),3000UL);

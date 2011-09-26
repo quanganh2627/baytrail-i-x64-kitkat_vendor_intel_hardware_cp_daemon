@@ -842,10 +842,10 @@ typedef struct {
     unsigned int    lastOpenAt;
 } COMM_KEEP_OPEN_CTRL, *pCOMM_KEEP_OPEN_CTRL;
 
-#define CPD_MODEM_MONITOR_RX_INTERVAL	180000
-#define CPD_MODEM_MONITOR_TX_INTERVAL	180000
-#define CPD_MODEM_MONITOR_CPOSR_EVENT	180000
-#define CPD_SYSTEMMONITOR_INTERVAL		1000	/* interval on which CPD will check services status */
+#define CPD_MODEM_MONITOR_RX_INTERVAL	300000
+#define CPD_MODEM_MONITOR_TX_INTERVAL	300000
+#define CPD_MODEM_MONITOR_CPOSR_EVENT	300000
+#define CPD_SYSTEMMONITOR_INTERVAL		20000	/* interval on which CPD will check services status */
 
 typedef struct {
 	char		        modemName[MODEM__NAME_MAX_LEN];

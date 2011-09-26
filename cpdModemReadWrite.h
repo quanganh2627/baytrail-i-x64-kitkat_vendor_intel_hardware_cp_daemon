@@ -14,6 +14,7 @@ int cpdModemSendCommand(pCPD_CONTEXT , const char *, int , unsigned int );
 int cpdModemSocketWriteToAllExcpet(pSOCKET_SERVER , char *, int , int );
 void *cpdModemReadThreadLoop(void *);
 int cpdModemOpen(pCPD_CONTEXT );
+int cpdModemInitForCP(pCPD_CONTEXT );
 int cpdModemClose(pCPD_CONTEXT );
 #endif  /* _CPDMODEM_RW_H_ */
  

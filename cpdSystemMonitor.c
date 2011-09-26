@@ -174,7 +174,7 @@ int cpdSystemMonitorStart( void )
         (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_TERMINATED)) {
         pCpd->systemMonitor.monitorThreadState = THREAD_STATE_STARTING; 
         result = pthread_create(&(pCpd->systemMonitor.monitorThread), NULL, cpdSystemMonitorThread, (void *) pCpd);
-        usleep(1000);
+        sleep(1UL);
         if ((result == 0) && (pCpd->modemInfo.modemReadThreadState == RUN_ACTIVE)) {
             result = CPD_OK;
         }

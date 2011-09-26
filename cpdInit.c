@@ -17,6 +17,7 @@
 #define LOG_TAG "CPDD_IN"
 
 #include "cpd.h"
+#include "cpdUtil.h"
 
 void cpdDeInit(void);
 
