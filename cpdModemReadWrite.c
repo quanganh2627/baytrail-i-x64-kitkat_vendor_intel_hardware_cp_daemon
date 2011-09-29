@@ -882,6 +882,9 @@ int cpdModemOpen(pCPD_CONTEXT pCpd)
         CPD_LOG(CPD_LOG_ID_TXT,"\n  %s(%s) = %d", __FUNCTION__, pCpd->modemInfo.modemName, pCpd->modemInfo.modemFd);
         pCpd->modemInfo.keepOpenCtrl.keepOpenRetryCount++;
         pCpd->modemInfo.keepOpenCtrl.lastOpenAt = getMsecTime();
+		pCpd->modemInfo.registeredForCPOSR = 0;
+		pCpd->modemInfo.receivedCPOSRat = 0;
+		pCpd->modemInfo.registeredForCPOSRat = 0;
         
         if (pCpd->modemInfo.modemFd > CPD_ERROR) {
             pCpd->modemInfo.modemReadThreadState = THREAD_STATE_STARTING;

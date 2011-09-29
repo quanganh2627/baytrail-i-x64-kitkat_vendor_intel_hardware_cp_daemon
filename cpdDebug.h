@@ -29,7 +29,7 @@
 
 #define CLEAN_TRACE 1
 #define MARTIN_LOGGING 1
-
+#define xCPD_DEBUG_ADD_TIMESTAMP   1
 
 #ifdef MARTIN_LOGGING
 void cpdDebugInit(char *prefix);

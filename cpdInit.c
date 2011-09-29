@@ -26,7 +26,9 @@ CPD_CONTEXT cpdContext;
 pCPD_CONTEXT cpdInit(void)
 {
     int result = CPD_OK;
+/*
 	LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
+*/	
     cpdContext.initialized = CPD_ERROR;
 	memset(&cpdContext, 0, sizeof(CPD_CONTEXT));
 
@@ -64,12 +66,12 @@ pCPD_CONTEXT cpdInit(void)
     cpdContext.gpsCommBuffer.rxBufferCmdStart = CPD_ERROR;
     cpdContext.gpsCommBuffer.rxBufferCmdEnd = CPD_ERROR;
 
-    cpdContext.scIndexToGps = CPD_ERROR;        
-    
-    
+    cpdContext.scIndexToGps = CPD_ERROR;    
+	
+	cpdContext.systemMonitor.pmfd = -1;
+	
     if (result == CPD_OK) {
         cpdContext.initialized = result;
-        LOGD("%u: %s() = %d", getMsecTime(), __FUNCTION__, result);
     	return &cpdContext;
     }
 	LOGE("%u: %s() = NULL", getMsecTime(), __FUNCTION__);
@@ -97,7 +99,6 @@ void cpdDeInit(void)
 
 pCPD_CONTEXT cpdGetContext(void)
 {
-	LOGD("%u: %s() = %d", getMsecTime(), __FUNCTION__, cpdContext.initialized);
     if (cpdContext.initialized == CPD_OK) {
         return &cpdContext;
     }

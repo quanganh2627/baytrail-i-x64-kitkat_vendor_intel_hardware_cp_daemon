@@ -323,12 +323,25 @@ int cpdSendCpPositionResponseToModem(pCPD_CONTEXT pCpd)
 
     pLocation = &(pCpd->response.location);
     CPD_LOG(CPD_LOG_ID_TXT , "\n  %u: %s()\n", getMsecTime(), __FUNCTION__);
-	CPD_LOG(CPD_LOG_ID_TXT , "\n Location : %f, %f, %f",
+    LOGD("%u: %s()\n", getMsecTime(), __FUNCTION__);
+	CPD_LOG(CPD_LOG_ID_TXT , "\n Location : %f, %f, %d",
+		pCpd->response.location.location_parameters.shape_data.point_alt_uncertellipse.coordinate.longitude,
+		pCpd->response.location.location_parameters.shape_data.point_alt_uncertellipse.coordinate.latitude.degrees,
+		pCpd->response.location.location_parameters.shape_data.point_alt_uncertellipse.altitude.height
+		);
+	LOGD("Rx Location : %f, %f, %d",
 		pCpd->response.location.location_parameters.shape_data.point_alt_uncertellipse.coordinate.longitude,
 		pCpd->response.location.location_parameters.shape_data.point_alt_uncertellipse.coordinate.latitude.degrees,
 		pCpd->response.location.location_parameters.shape_data.point_alt_uncertellipse.altitude.height
 		);
 	CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\n TTFF : %u, %u, %u, %u, %u",
+		(pCpd->response.dbgStats.posReceivedFromGps1 - pCpd->response.dbgStats.posRequestedFromGps),
+		pCpd->response.dbgStats.posRequestedByNetwork,
+		pCpd->response.dbgStats.posRequestedFromGps,
+		pCpd->response.dbgStats.posReceivedFromGps1,
+		pCpd->response.dbgStats.posReceivedFromGps
+		);
+	LOGD("TTFF : %u, %u, %u, %u, %u",
 		(pCpd->response.dbgStats.posReceivedFromGps1 - pCpd->response.dbgStats.posRequestedFromGps),
 		pCpd->response.dbgStats.posRequestedByNetwork,
 		pCpd->response.dbgStats.posRequestedFromGps,
@@ -365,11 +378,11 @@ int cpdSendCpPositionResponseToModem(pCPD_CONTEXT pCpd)
 					if ((pCpd->modemInfo.haveResponse != 0) &&
 						(pCpd->modemInfo.responseValue == AT_RESPONSE_OK)) {
 						pCpd->modemInfo.sentCPOSok = CPD_OK;
+						pCpd->systemMonitor.processingRequest = CPD_NOK; 
 					}
 					else {
 						result = CPD_NOK;
 					}
-						
 				}
 				CPD_LOG(CPD_LOG_ID_TXT , "\n %u: cpdSendCposResponse() = %d, Modem: %d, %d, CPOSsent=%d", 
 					getMsecTime(), result, pCpd->modemInfo.haveResponse, pCpd->modemInfo.responseValue, pCpd->modemInfo.sentCPOSok); 
@@ -386,6 +399,7 @@ int cpdSendCpPositionResponseToModem(pCPD_CONTEXT pCpd)
     /* Release allocated resoucrs */
     xmlFreeDoc(pDoc);
     //xmlOutputBufferClose(pOutBuffer);
-    CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n %u: END %s() = %d", getMsecTime(), __FUNCTION__, result);
+    CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u: END %s() = %d", getMsecTime(), __FUNCTION__, result);
+    LOGD("%u: END %s() = %d", getMsecTime(), __FUNCTION__, result);
     return result;
 }

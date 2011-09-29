@@ -39,6 +39,7 @@
 
 
 int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd);
+int cpdSendStopToGPS(pCPD_CONTEXT pCpd);
 
 
 /* =========== DEBUG & TEST functions ================= */
@@ -262,15 +263,6 @@ int cpdGpsMsgFindHeadTail(pGPS_COMM_BUFFER pGpsComm)
         pGpsComm->rxBufferMessageType = CPD_ERROR;
     }
     
-    CPD_LOG(CPD_LOG_ID_TXT, "\n%u,cpdGpsMsgFindHeadTail(%d,%d, %d, %d, %d, %d) = %d \n", getMsecTime(),
-            pGpsComm->rxBufferIndex,
-            pGpsComm->rxBufferCmdStart,
-            pGpsComm->rxBufferCmdEnd,
-            pGpsComm->rxBufferMessageType,
-            pGpsComm->rxBufferCmdDataSize,
-            pGpsComm->rxBufferCmdDataStart,
-            result
-            );
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
@@ -297,7 +289,6 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
             break;
         case CPD_MSG_TYPE_POS_MEAS_REQ:
             LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ)", getMsecTime(), __FUNCTION__); 
-            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_POS_MEAS_REQ , %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize); 
             memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
             pCpd->request.flag = CPD_ERROR;
             if ((int) sizeof(REQUEST_PARAMS) >= pGpsComm->rxBufferCmdDataSize) {
@@ -330,7 +321,10 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
                 }
             }
             if (pCpd->pfMessageHandlerInCpd != NULL) {
-                pCpd->pfMessageHandlerInCpd(pCpd);
+                result = pCpd->pfMessageHandlerInCpd(pCpd);
+				if (result == CPD_OK) {
+//					cpdSendStopToGPS(pCpd);
+				}
             }
             break;
         case CPD_MSG_TYPE_QUERRY:
@@ -400,7 +394,7 @@ int cpdGpsCommMsgReader(void * pArg, char *pB, int len, int index)
             result = result + cpdGpsCommHandlePacket(pCpd);
         }
     }   
-    CPD_LOG(CPD_LOG_ID_TXT, "\n  %u: %s(%d) = %d\n", getMsecTime(), __FUNCTION__, len, result);
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(%d) = %d\n", getMsecTime(), __FUNCTION__, len, result);
     LOGD("%u: %s(%d)=%d", getMsecTime(), __FUNCTION__, len, result); 
     return result;
 }
@@ -462,9 +456,6 @@ int cpdFormatAndSendMsgToGps(pCPD_CONTEXT pCpd)
     int len;    
     int *pI;
     pSOCKET_CLIENT pSc;
-
-    LOGD("%u: %s()", getMsecTime(), __FUNCTION__); 
-    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
     
     pBSize = strlen(CPD_MSG_HEADER_TO_GPS) + strlen(CPD_MSG_TAIL) + sizeof(REQUEST_PARAMS) + 128;
     pB = malloc(pBSize);
@@ -494,6 +485,7 @@ int cpdFormatAndSendMsgToGps(pCPD_CONTEXT pCpd)
     result = cpdSocketWrite(pSc, pB, len);
     CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_TO_GPS, len, result);
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
+	free((void *) pB);
     return result;
 }   
 
@@ -510,12 +502,8 @@ int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd)
     int *pI;
     pSOCKET_SERVER pSs;
 
-    LOGD("%u: %s()", getMsecTime(), __FUNCTION__); 
-    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
-    
     pBSize = strlen(CPD_MSG_HEADER_FROM_GPS) + strlen(CPD_MSG_TAIL) + sizeof(RESPONSE_PARAMS) + 128;
     pB = malloc(pBSize);
-    CPD_LOG(CPD_LOG_ID_TXT, "\r\n Allocated %d for response %p", pBSize, pB);
     if (pB == NULL) {
         return result;
     }
@@ -541,6 +529,23 @@ int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd)
     result = cpdSocketWriteToAll(pSs, pB, len);
     CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_FROM_GPS, len, result);
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
+	free((void *) pB);
     return result;
 }   
+
+/*
+ * request GPS to stop.
+ */
+int cpdSendStopToGPS(pCPD_CONTEXT pCpd)
+{
+	int result = CPD_NOK;
+	memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
+	pCpd->request.flag = REQUEST_FLAG_CTRL_MSG;
+	pCpd->request.posMeas.flag = POS_MEAS_STOP_GPS;
+	result = cpdFormatAndSendMsgToGps(pCpd);
+    CPD_LOG(CPD_LOG_ID_TXT,"\n%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
+    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
+	return result;
+}
+
 

@@ -238,7 +238,7 @@ void *cpdSocketAcceptThreadLoop(void *pArg)
         p.fd = pSS->sockfd;
         p.events = POLLERR | POLLHUP | POLLNVAL | POLLIN | POLLPRI;
         p.revents = 0;
-        poolResult = poll( &p, 1, 1000 );
+        poolResult = poll( &p, 1, -1 );
         if (poolResult < 0) {
             LOGE("%u: %s(), poll error, %d", getMsecTime(), __FUNCTION__, poolResult); 
             CPD_LOG(CPD_LOG_ID_TXT , "\r\n %u: %s(), poolResult= %d\n", getMsecTime(), __FUNCTION__, poolResult);
@@ -532,7 +532,6 @@ int cpdSocketWriteToAllExcpet(pSOCKET_SERVER pSS, char *pB, int len, int noWrite
     int result = CPD_OK;
     int rr;
     int i;
-    LOGD("%u: %s(%d,%d)", getMsecTime(), __FUNCTION__, len, noWrite);
     if (pSS == NULL) {
         return CPD_ERROR;
     }
@@ -559,7 +558,6 @@ int cpdSocketWriteToAll(pSOCKET_SERVER pSS, char *pB, int len)
     int result = CPD_OK;
     int rr;
     int i;
-    LOGD("%u: %s(%d)", getMsecTime(), __FUNCTION__, len);
     if ((len > 0) && (pB != NULL)) {
         result = cpdSocketWriteToAllExcpet(pSS, pB, len, -1);
     }
@@ -580,7 +578,9 @@ int cpdSocketWrite(pSOCKET_CLIENT pSc , char *pB, int len)
         return result;
     }
     result = write(pSc->fd, pB, len); /* could also use send() */
+/*
     LOGD("%u: %s(%d) = %d", getMsecTime(), __FUNCTION__, len, result);
+*/    
     return result;
 }
 

@@ -80,11 +80,11 @@ int cpdStart(pCPD_CONTEXT pCpd)
         pCpd->scGpsKeepOpenCtrl.lastOpenAt = getMsecTime();
         pCpd->scGpsKeepOpenCtrl.keepOpenRetryCount++;
         if (pCpd->scIndexToGps == CPD_ERROR) {
-            CPD_LOG( CPD_LOG_ID_TXT, "\r\n !!!Socket to GPS Open failed %s:%d = %d\n", SOCKET_HOST_GPS, SOCKET_PORT_GPS, pCpd->scIndexToGps); 
+            CPD_LOG( CPD_LOG_ID_TXT, "\r\n !!!Socket to GPS Open failed %s:%d,  index=%d\n", SOCKET_HOST_GPS, SOCKET_PORT_GPS, pCpd->scIndexToGps); 
             LOGE("!!!Socket to GPS Open failed %s:%d = %d\n", SOCKET_HOST_GPS, SOCKET_PORT_GPS, pCpd->scIndexToGps); 
         }
         else {
-            CPD_LOG(CPD_LOG_ID_TXT, "\r\n Socket to GPS established %s:%d = %d\n", SOCKET_HOST_GPS, SOCKET_PORT_GPS, pCpd->scIndexToGps); 
+            CPD_LOG(CPD_LOG_ID_TXT, "\r\n Socket to GPS established %s:%d, index=%d\n", SOCKET_HOST_GPS, SOCKET_PORT_GPS, pCpd->scIndexToGps); 
             LOGD("Socket to GPS established %s:%d = %d\n", SOCKET_HOST_GPS, SOCKET_PORT_GPS, pCpd->scIndexToGps); 
         }
     }

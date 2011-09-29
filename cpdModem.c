@@ -122,7 +122,7 @@ int modemRead(int fd, void *pBuffer, int len)
 //    p.events = POLLERR | POLLHUP | POLLNVAL | POLLIN | POLLPRI;
     p.events = POLLERR | POLLHUP | POLLIN;
     p.revents = 0;
-    ret = poll( &p, 1, 1000 );
+    ret = poll( &p, 1, -1);
     if (ret < 0) {
         LOGE("POLL error, %d", ret);
         return result-100;

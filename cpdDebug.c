@@ -117,16 +117,24 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
     int i;
     unsigned int mask;
     va_list args;
+#ifdef CPD_DEBUG_ADD_TIMESTAMP
+	char timeStampStr[64];
+	getTimeString(timeStampStr, 60);
+#endif
 
     if ((logID == 0) || ((logID & CPD_LOG_ID_CONSOLE) != 0)) {
         console = 1;
     }
     va_start(args, pFormat); //Requires the last fixed parameter (to get the address)
+    
     i = 1;
     while (logID != 0) {
         mask = (1 << i);
         fp = cpdGetLogFp((logID & mask));
         if (fp != NULL) {
+#ifdef CPD_DEBUG_ADD_TIMESTAMP
+			fwrite(timeStampStr, 1, strlen(timeStampStr), fp);
+#endif
             result = vfprintf(fp, pFormat, args);
             if (result < 0) {
                 cpdDebugClose();

@@ -25,12 +25,11 @@ typedef enum {
 } CPD_MSG_TYPE_E;
 
 
-int cpdGpsCommMsgReader(void * pArg, char *pB, int len, int index);
-
-
-int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT pCpd);
-int cpdFormatAndSendMsgToGps(pCPD_CONTEXT pCpd);
-int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd);
+int cpdGpsCommMsgReader(void * , char *, int , int );
+int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT );
+int cpdFormatAndSendMsgToGps(pCPD_CONTEXT );
+int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT );
+int cpdSendStopToGPS(pCPD_CONTEXT );
 
 
 #endif

@@ -64,26 +64,6 @@
 
 #define GPS_MAX_N_SVS    (12)
 
-/*
- * 3GPP commands :
- *  	1. location
- *  	2. assist_data
- *  	3. pos_meas
- *  	4. GPS_meas
- *  	5. GPS_assist_req.
- *  	6. msg
- *  	7. pos_err
- *
- */
-typedef enum {
-	XML_PARSER_CMD_LOCATION,
-	XML_PARSER_CMD_ASSIST_DATA,
-	XML_PARSER_CMD_POS_MEAS,
-	XML_PARSER_CMD_GPS_MEAS,
-	XML_PARSER_CMD_GPS_ASSIST_REQ,
-	XML_PARSER_CMD_MSG,
-	XML_PARSER_CMD_POS_ERR
-} XML_PARSER_CMD_E;
 
 
 /*
@@ -541,7 +521,8 @@ enum {
     POS_MEAS_NONE,
 	POS_MEAS_RRLP,
 	POS_MEAS_RRC,
-	POS_MEAS_ABORT
+	POS_MEAS_ABORT,
+	POS_MEAS_STOP_GPS
 } POS_MEAS_E;
 
 typedef enum {
@@ -769,9 +750,33 @@ typedef struct {
 #define CPD_MSG_VERSION (1)
 
 
+/*
+ * 3GPP commands :
+ *  	1. location
+ *  	2. assist_data
+ *  	3. pos_meas
+ *  	4. GPS_meas
+ *  	5. GPS_assist_req.
+ *  	6. msg
+ *  	7. pos_err
+ *
+ */
+typedef enum {
+	REQUEST_FLAG_NONE = 0,
+	REQUEST_FLAG_LOCATION = 1,
+	REQUEST_FLAG_ASSIST_DATA = 2,
+	REQUEST_FLAG_POS_MEAS = 4,
+	REQUEST_FLAG_GPS_MEAS = 8,
+	REQUEST_FLAG_GPS_ASSIST_REQ = 16,
+	REQUEST_FLAG_CMD_MSG = 32,
+	REQUEST_FLAG_CMD_POS_ERR = 64,
+	REQUEST_FLAG_CTRL_MSG = 128
+} REQUEST_FLAG_E;
+
+
 typedef struct {
     int             version;
-	int             flag;
+	REQUEST_FLAG_E	flag;
 
 //	LOCATION        location;
 	ASSIST_DATA     assist_data;
@@ -845,7 +850,7 @@ typedef struct {
 #define CPD_MODEM_MONITOR_RX_INTERVAL	300000
 #define CPD_MODEM_MONITOR_TX_INTERVAL	300000
 #define CPD_MODEM_MONITOR_CPOSR_EVENT	300000
-#define CPD_SYSTEMMONITOR_INTERVAL		20000	/* interval on which CPD will check services status */
+#define CPD_SYSTEMMONITOR_INTERVAL		5000	/* interval on which CPD will check services status */
 
 typedef struct {
 	char		        modemName[MODEM__NAME_MAX_LEN];
@@ -904,6 +909,8 @@ typedef struct {
 	THREAD_STATE_E		monitorThreadState;
     unsigned int        loopInterval;
     unsigned int        lastCheck;
+	int					processingRequest;
+	int 				pmfd;
 } SYSTEM_MONITOR, *pSYSTEM_MONITOR;
 
 typedef struct {

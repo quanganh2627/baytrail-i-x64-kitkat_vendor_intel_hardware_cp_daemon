@@ -14,6 +14,7 @@ void initTime(void);
 unsigned int get_msec_time_now(void);
 unsigned int getMsecTime(void);
 unsigned int getMsecDt(unsigned int t);
+int getTimeString(char *, int ); 
 int cpdMoveBufferLeft(char *pB, int *pIndex, int left);
 int readUserChoice(void);
 int cpdFindString(char *pB, int len, char *findMe, int lenStr);

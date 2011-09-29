@@ -196,7 +196,7 @@ void cpdCreatePositionResponse_t(pCPD_CONTEXT pCpd)
 	static pthread_t sendThread = 0;
 
 	
-    if (pCpd->request.flag == XML_PARSER_CMD_POS_MEAS) {
+    if (pCpd->request.flag == REQUEST_FLAG_POS_MEAS) {
         if (pCpd->request.posMeas.flag == POS_MEAS_ABORT) {
 			if (sendThread != 0) {
 				pthread_kill(pCpd->systemMonitor.monitorThread, SIGUSR1);
@@ -1280,15 +1280,17 @@ static int cpdXmlParseDoc(pCPD_CONTEXT pCpd, char *pB, int len)
             CPD_LOG(CPD_LOG_ID_TXT, "\r\n !!! Decode for %s not handled yet\n", (char *)pNode->name);
         }
         else if (!xmlStrcmp(pNode->name, (const xmlChar *) CPOSR_ASSIST_DATA_ELEMENT)) {
+			pCpd->systemMonitor.processingRequest = CPD_OK; /* disable power management during request processing */
             ret = cpdXmlParse_assist_data(pDoc, pNode, &(pCpd->request.assist_data));
             if (ret == CPD_OK) {
-                pCpd->request.flag = XML_PARSER_CMD_ASSIST_DATA;
+                pCpd->request.flag = REQUEST_FLAG_ASSIST_DATA;
             }
         }
         else if (!xmlStrcmp(pNode->name, (const xmlChar *) CPOSR_POS_MEAS_ELEMENT)) {
+			pCpd->systemMonitor.processingRequest = CPD_OK; /* disable power management during request processing */
             ret = cpdXmlParse_pos_meas(pDoc, pNode, &(pCpd->request.posMeas));
             if (ret == CPD_OK) {
-                pCpd->request.flag = XML_PARSER_CMD_POS_MEAS;
+                pCpd->request.flag = REQUEST_FLAG_POS_MEAS;
             }
         }
         else if (!xmlStrcmp(pNode->name, (const xmlChar *) CPOSR_GPS_MEAS_ELEMENT)) {
@@ -1310,7 +1312,7 @@ static int cpdXmlParseDoc(pCPD_CONTEXT pCpd, char *pB, int len)
     xmlFreeDoc(pDoc);
     pDoc = NULL;
     pCpd->modemInfo.receivingXml = CPD_NOK;
-    if (pCpd->request.flag == XML_PARSER_CMD_POS_MEAS) {
+    if (pCpd->request.flag == REQUEST_FLAG_POS_MEAS) {
         if (pCpd->request.posMeas.flag != POS_MEAS_NONE) {
 			pCpd->modemInfo.sentCPOSok = CPD_NOK;
             cpdLogRequestParametersInXmlParser_t(pCpd); /* debug printout TODO: remove after it's not needed any more */	

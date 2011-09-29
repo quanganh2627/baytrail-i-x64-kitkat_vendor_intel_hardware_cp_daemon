@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <utime.h>
 #include <sys/time.h>
+#include <time.h>
 
 static struct timeval start_time;
 
@@ -39,6 +40,21 @@ unsigned int getMsecTime(void)
 	tMsec = (t.tv_sec - start_time.tv_sec) * 1000 + (t.tv_usec - start_time.tv_usec)/1000;
 	return tMsec;
 }
+
+int getTimeString(char *pS, int len) 
+{
+	struct tm local;
+	struct timespec ts;
+
+	pS[0] = 0;
+	if ( clock_gettime( CLOCK_REALTIME, &ts ) != 0 ) {
+		local = *localtime(&ts.tv_sec);
+		snprintf(pS, len, "<%02d:%02d:%02d.%03u> ",local.tm_hour, local.tm_min, local.tm_sec, (unsigned int) (ts.tv_nsec/1000000UL));
+		return strlen(pS);
+	}
+	return 0;
+}
+
 
 unsigned int getMsecDt(unsigned int t)
 {
