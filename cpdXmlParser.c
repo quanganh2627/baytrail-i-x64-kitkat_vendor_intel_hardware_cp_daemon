@@ -42,7 +42,7 @@ void cpdLogRequestParametersInXmlParser_t(pCPD_CONTEXT pCpd)
     pNAV_MODEL_ELEM pNavModelElem;
     pGPS_ASSIST pGPSassist = &(pCpd->request.assist_data.GPS_assist);
     pREF_TIME pRefTime = &(pGPSassist->ref_time);
-    pRRLP_MEAS pRrlpMeas = &(pCpd->request.posMeas.rrlp_meas);
+    pRRLP_MEAS pRrlpMeas = &(pCpd->request.posMeas.posMeas_u.rrlp_meas);
     pLOCATION_PARAMETERS pLocationParameters = &(pGPSassist->location_parameters);
     pPOINT_ALT_UNCERTELLIPSE pEllipse = &(pLocationParameters->shape_data.point_alt_uncertellipse);
     
@@ -1176,8 +1176,8 @@ static int cpdXmlParse_pos_meas(xmlDoc *pDoc, xmlNode *pParent, pPOS_MEAS pPosMe
 	/* RRLP_meas */
     pNode = xmlNodeGetChild(pParent, "RRLP_meas");
 	if (pNode != NULL) {
-        memset(&(pPosMeas->rrlp_meas), 0, sizeof(RRLP_MEAS));
-		result = cpdXmlParse_RRLP_meas(pDoc, pNode, &(pPosMeas->rrlp_meas));
+        memset(&(pPosMeas->posMeas_u.rrlp_meas), 0, sizeof(RRLP_MEAS));
+		result = cpdXmlParse_RRLP_meas(pDoc, pNode, &(pPosMeas->posMeas_u.rrlp_meas));
         CPD_LOG(CPD_LOG_ID_TXT , "\r\n\n +++ parsed cpdXmlParse_RRLP_meas() = %d +++\n", result);
         if (result == CPD_OK) {
             pPosMeas->flag = POS_MEAS_RRLP;
@@ -1187,8 +1187,8 @@ static int cpdXmlParse_pos_meas(xmlDoc *pDoc, xmlNode *pParent, pPOS_MEAS pPosMe
 	/* RRC_meas */
     pNode = xmlNodeGetChild(pParent, "RRC_meas");
 	if (pNode != NULL) {
-        memset(&(pPosMeas->rrc_meas), 0, sizeof(RRC_MEAS));
-		result = cpdXmlParse_RRC_meas(pDoc, pNode, &(pPosMeas->rrc_meas));
+        memset(&(pPosMeas->posMeas_u.rrc_meas), 0, sizeof(RRC_MEAS));
+		result = cpdXmlParse_RRC_meas(pDoc, pNode, &(pPosMeas->posMeas_u.rrc_meas));
         CPD_LOG(CPD_LOG_ID_TXT , "\r\n\n +++ parsed cpdXmlParse_RRC_meas() = %d +++\n", result);
         if (result == CPD_OK) {
             pPosMeas->flag = POS_MEAS_RRC;
@@ -1322,9 +1322,11 @@ static int cpdXmlParseDoc(pCPD_CONTEXT pCpd, char *pB, int len)
 				pCpd->request.dbgStats.posRequestedByNetwork = getMsecTime();
                 pCpd->pfCposrMessageHandlerInCpd(pCpd);
             }
+/*
             pCpd->request.posMeas.flag = POS_MEAS_NONE;
             pCpd->request.assist_data.flag = CPD_NOK;
             pCpd->request.flag = CPD_NOK;
+*/            
         }
     }
     return result;

@@ -201,7 +201,6 @@ typedef union {
 	POINT_ALT_UNCERTELLIPSE point_alt_uncertellipse;
 	POLYGON                 polygon;
 	ARC                     ellips_arc;
-
 } SHAPE_DATA_U, *pSHAPE_DATA_U;
 
 typedef struct {
@@ -517,7 +516,7 @@ typedef struct {
  *  3. pos_meas
  *
  */
-enum {
+typedef enum {
     POS_MEAS_NONE,
 	POS_MEAS_RRLP,
 	POS_MEAS_RRC,
@@ -529,7 +528,6 @@ typedef enum {
     MULT_SETS_NONE,
 	MULT_SETS_MULTIPLE,
 	MULT_SETS_ONE
-
 } MULT_SETS_E;
 
 typedef enum {
@@ -617,22 +615,25 @@ typedef struct {
 	REP_CRIT_E          type;
 	REP_EVENT_PAR       event_par;
 	PERIOD_REP_CRIT     period_rep_crit;
-
-} REP_CRIT;
+} REP_CRIT, *pREP_CRIT;
 
 
 typedef struct {
 	REP_QUANT rep_quant;
 	REP_CRIT rep_crit;
-
 } RRC_MEAS, *pRRC_MEAS;
 
 
-typedef struct {
-	int flag;
-	RRLP_MEAS rrlp_meas;
-	RRC_MEAS rrc_meas;
+typedef union {
+	RRLP_MEAS 	rrlp_meas;
+	RRC_MEAS 	rrc_meas;
+} POS_MEAS_U, *pPOS_MEAS_U;
 
+typedef struct {
+	POS_MEAS_E	flag;
+	POS_MEAS_U	posMeas_u;
+//	RRLP_MEAS 	rrlp_meas;
+//	RRC_MEAS 	rrc_meas;
 } POS_MEAS, *pPOS_MEAS;
 
 
@@ -646,12 +647,10 @@ typedef enum {
 	MULTIPATH_LOW,
 	MULTIPATH_MEDIUM,
 	MULTIPATH_HIGH
-
 } MULTIPATH_E;
 
 typedef struct {
 	long tow_msec;
-
 } ref_time_only_t;
 
 typedef struct {
@@ -662,14 +661,12 @@ typedef struct {
 	int             fract_chips;
 	MULTIPATH_E     multi_path;
 	int             psr_rms_err;
-
 } MEAS_PARAMS, *pMEAS_PARAMS;
 
 typedef struct {
 	long        tow_msec;
 	MEAS_PARAMS *meas_params;
 	unsigned int meas_params_nb_items;
-
 } GPS_MEAS, *pGPS_MEAS;
 
 
@@ -680,7 +677,6 @@ typedef struct {
 typedef struct {
 	unsigned char   sat_id;
 	int             iode;
-
 } ADDL_REQ_SAT, *pADDL_REQ_SAT;
 
 typedef struct {
@@ -688,7 +684,6 @@ typedef struct {
 	int         GPS_toe;
 	int         ttoe_limit;
 	ADDL_REQ_SAT addl_req_sat;
-
 } NAV_ADDL_DATA, *pNAV_ADDL_DATA;
 
 typedef struct {
@@ -701,9 +696,7 @@ typedef struct {
 	int ref_time_req;
 	int aqu_assist_req;
 	int rt_integr_req;
-
 	NAV_ADDL_DATA nav_addl_data;
-
 } GPS_ASSIST_REQ, *pGPS_ASSIST_REQ;
 
 
@@ -714,7 +707,6 @@ typedef struct {
 typedef enum {
     MSG_STATUS_ASSIST_DATA_NONE,
 	MSG_STATUS_ASSIST_DATA_DELIVERED
-
 } MSG_STATUS_E;
 
 typedef struct {
@@ -730,13 +722,11 @@ typedef enum {
 	POS_ERROR_UNDEFINED,
 	POS_ERROR_NOT_ENOUGH_GPS_SATELLITES,
 	POS_ERROR_NOT_GPS_ASSISTANCE_DATA_MISSING
-
 } POS_ERR_REASON_E;
 
 typedef struct {
 	POS_ERR_REASON_E    err_reason;
 	GPS_ASSIST_REQ      GPS_assist_req;
-
 } POS_ERR, *pPOS_ERR;
 
 typedef struct {
@@ -778,14 +768,9 @@ typedef struct {
     int             version;
 	REQUEST_FLAG_E	flag;
 
-//	LOCATION        location;
 	ASSIST_DATA     assist_data;
 	POS_MEAS        posMeas;
-//	GPS_MEAS        GPS_meas;
 //	GPS_ASSIST_REQ  GPS_assist_req;
-//	MSG_STATUS      msg;
-//	POS_ERR         pos_err;
-
 	POS_RESP_MEASUREMENTS	dbgStats;
 } REQUEST_PARAMS, *pREQUEST_PARAMS;
 
@@ -797,7 +782,6 @@ typedef struct {
 	GPS_ASSIST_REQ  GPS_assist_req;
 	POS_ERR         pos_err;
 	POS_RESP_MEASUREMENTS	dbgStats;
-
 } RESPONSE_PARAMS, *pRESPONSE_PARAMS;
 
 

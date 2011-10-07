@@ -50,7 +50,7 @@ void cpdLogRequestParameters_t(pCPD_CONTEXT pCpd)
     pNAV_MODEL_ELEM pNavModelElem;
     pGPS_ASSIST pGPSassist = &(pCpd->request.assist_data.GPS_assist);
     pREF_TIME pRefTime = &(pGPSassist->ref_time);
-    pRRLP_MEAS pRrlpMeas = &(pCpd->request.posMeas.rrlp_meas);
+    pRRLP_MEAS pRrlpMeas = &(pCpd->request.posMeas.posMeas_u.rrlp_meas);
     pLOCATION_PARAMETERS pLocationParameters = &(pGPSassist->location_parameters);
     pPOINT_ALT_UNCERTELLIPSE pEllipse = &(pLocationParameters->shape_data.point_alt_uncertellipse);
     
@@ -324,6 +324,9 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
                 result = pCpd->pfMessageHandlerInCpd(pCpd);
 				if (result == CPD_OK) {
 //					cpdSendStopToGPS(pCpd);
+					pCpd->request.posMeas.flag = POS_MEAS_NONE;
+					pCpd->request.assist_data.flag = CPD_NOK;
+					pCpd->request.flag = CPD_NOK;
 				}
             }
             break;

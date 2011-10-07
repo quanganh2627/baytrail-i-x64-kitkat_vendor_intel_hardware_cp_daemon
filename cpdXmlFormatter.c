@@ -19,6 +19,7 @@
  
 #include "cpd.h"
 #include "cpdUtil.h"
+#include "cpdInit.h"
 #include "cpdXmlUtils.h"
 #include "cpdModemReadWrite.h"
 #include "cpdDebug.h"
@@ -114,13 +115,16 @@ int cpdXmlFormatLocation(xmlDoc *pDoc, pLOCATION pLoc)
     char *prefix = "pos.xsd";
     xmlDtdPtr dtd = NULL;       /* DTD pointer */
     long ltemp;
+	pCPD_CONTEXT pCpd;
 
+	pCpd = cpdGetContext();
+	
     ns.context = NULL;
     ns.href = (xmlChar *) href;
     ns.prefix = (xmlChar *) prefix;
     ns.type = XML_DTD_NODE;
 
-    CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\n  %u: %s()\n", getMsecTime(), __FUNCTION__);
+    CPD_LOG(CPD_LOG_ID_TXT , "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
 
     /* Create the pos pNode & add it to the pDocument */
     pRoot = xmlNewNode(NULL, (xmlChar *) "pos");
@@ -238,7 +242,11 @@ int cpdXmlFormatLocation(xmlDoc *pDoc, pLOCATION pLoc)
 
         ltemp = (long) (46603.37778 * pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude);
         ltemp = ltemp & 0xFFFFFF;
-        CPD_LOG(CPD_LOG_ID_TXT, "\r\n Lon=%f = %d", pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude, ltemp);
+		if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
+			ltemp = (long) (46603.0 * pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude);
+    	}
+        CPD_LOG(CPD_LOG_ID_TXT, "\r\n Lon=%f = %d, flag=%d", pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude, ltemp, 
+			pCpd->request.posMeas.flag);
         cpdXmlNodeAddChildLong(pNode1, "longitude", ltemp);
 
         pNode1 = cpdXmlNodeAddChild(pNode,  "altitude", NULL);
