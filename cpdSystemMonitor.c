@@ -31,7 +31,7 @@
 #include "cpdDebug.h"
 
 /* this is from kernel-mode PM driver */
-#define OS_STATE_ON 	0
+#define OS_STATE_ON 	1
 #define OS_PM_CURRENT_STATE_NAME "/sys/power/current_state"
 
 #define PM_STATE_BUFFER_SIZE	64
