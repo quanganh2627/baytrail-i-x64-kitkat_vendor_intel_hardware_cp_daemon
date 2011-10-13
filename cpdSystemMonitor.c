@@ -31,7 +31,10 @@
 #include "cpdDebug.h"
 
 /* this is from kernel-mode PM driver */
-#define OS_STATE_ON 	1
+#define	OS_STATE_NONE			0
+#define	OS_STATE_ON			1
+#define	OS_STATE_BEFORE_EARLYSUSPEND	2
+
 #define OS_PM_CURRENT_STATE_NAME "/sys/power/current_state"
 
 #define PM_STATE_BUFFER_SIZE	64
@@ -86,7 +89,10 @@ static int cpdInitSystemPowerState(pCPD_CONTEXT pCpd)
 		pCpd->systemMonitor.pmfd = open(OS_PM_CURRENT_STATE_NAME, O_RDONLY);
 	}
 	state = cpdReadSystemPowerState(pCpd);
-	if (state == OS_STATE_ON){
+	if (state == OS_STATE_NONE){
+		result = CPD_OK;
+	}
+	else if (state == OS_STATE_ON){
 		result = CPD_OK;
 	}
 	else {
@@ -120,7 +126,7 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
 	fds.fd = pCpd->systemMonitor.pmfd;
 	fds.events = POLLERR | POLLPRI;
 	state = cpdReadSystemPowerState(pCpd);
-	if (state == OS_STATE_ON){
+	if ((state == OS_STATE_ON) || (state == OS_STATE_NONE)) {
 		result = CPD_OK;
 	}
 	if (pCpd->systemMonitor.processingRequest == CPD_OK) {
@@ -131,7 +137,7 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
 		if (ret > 0) {
 			if (fds.revents & (POLLERR | POLLPRI)) {
 				state = cpdReadSystemPowerState(pCpd);
-				if (state == OS_STATE_ON){
+				if ((state == OS_STATE_ON) || (state == OS_STATE_NONE)){
 					result = CPD_OK;
 					/* System is alive, exit, handle events.. */
 				}

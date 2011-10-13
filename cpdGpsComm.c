@@ -288,7 +288,7 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
             LOGD("%u: %s(CPD_MSG_TYPE_MEAS_ABORT_REQ)", getMsecTime(), __FUNCTION__); 
             break;
         case CPD_MSG_TYPE_POS_MEAS_REQ:
-            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ)", getMsecTime(), __FUNCTION__); 
+            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ, %d, %d)", getMsecTime(), __FUNCTION__, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize); 
             memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
             pCpd->request.flag = CPD_ERROR;
             if ((int) sizeof(REQUEST_PARAMS) >= pGpsComm->rxBufferCmdDataSize) {

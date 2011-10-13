@@ -240,12 +240,14 @@ int cpdXmlFormatLocation(xmlDoc *pDoc, pLOCATION pLoc)
         CPD_LOG(CPD_LOG_ID_TXT, "\r\n Lat=%f = %d", pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.latitude.degrees, ltemp);
         cpdXmlNodeAddChildLong(pNode2, "degrees", ltemp);
 
-        ltemp = (long) (46603.37778 * pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude);
-        ltemp = ltemp & 0xFFFFFF;
-		if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
+//        ltemp = (long) (46603.37778 * pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude);
+//        ltemp = ltemp & 0xFFFFFF;
+//		if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
 			ltemp = (long) (46603.0 * pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude);
-    	}
+//    	}
         CPD_LOG(CPD_LOG_ID_TXT, "\r\n Lon=%f = %d, flag=%d", pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude, ltemp, 
+			pCpd->request.posMeas.flag);
+        LOGD("Lon=%f = %d, flag=%d", pLoc->location_parameters.shape_data.point_uncert_ellipse.coordinate.longitude, ltemp, 
 			pCpd->request.posMeas.flag);
         cpdXmlNodeAddChildLong(pNode1, "longitude", ltemp);
 

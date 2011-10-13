@@ -671,9 +671,12 @@ int cpdXmlParse_ellipsoid_point_alt_uncertellipse(xmlDoc *pDoc, xmlNode *pParent
         xmlNodeGetLong(pNode, &ltemp);
         /* Convert 3GGP value into degrees */
         CPD_LOG(CPD_LOG_ID_TXT ,"\n degrees=%d, %08X\n", ltemp, ltemp);
+		ltemp =  ltemp & 0xFFFFFF;
+/*
         if ((ltemp & 0x800000) != 0) {
             ltemp = -ltemp;
         }
+*/        
         CPD_LOG(CPD_LOG_ID_TXT ,"\n degrees=%d, %08X\n", ltemp, ltemp);
         pEllipse->coordinate.latitude.degrees = ((double) ltemp) / (93206.75556);
         
@@ -686,15 +689,21 @@ int cpdXmlParse_ellipsoid_point_alt_uncertellipse(xmlDoc *pDoc, xmlNode *pParent
         xmlNodeGetLong(pNode, &ltemp);
         /* Convert 3GGP value into degrees */
         CPD_LOG(CPD_LOG_ID_TXT ,"\n longitude=%d, %08X\n", ltemp, ltemp);
-        if ((ltemp & 0x800000) != 0) {
-            ltemp = -(ltemp);
+		/* This is temp work-arround for the mess in XML encoding. Different modem FW versions use different encoding types */
+		ltemp =  ltemp & 0xFFFFFF;
+/*
+		if (ltemp > 8388607) {
+	        if ((ltemp & 0x800000) != 0) {
+    	        ltemp = -(ltemp);
+	        }
         }
-        CPD_LOG(CPD_LOG_ID_TXT ,"\n longitude=%d, %08X\n", ltemp, ltemp);
+*/        
         pEllipse->coordinate.longitude = ((double) ltemp) / (90777.39816);
+        CPD_LOG(CPD_LOG_ID_TXT ,"\nLongitude=%d, %08X, %f\n", ltemp, ltemp, pEllipse->coordinate.longitude);
+        LOGD("Longitude=%d, %08X, %f", ltemp, ltemp, pEllipse->coordinate.longitude);
         if (ltemp >= (1 << 23)) {
             pEllipse->coordinate.longitude = -pEllipse->coordinate.longitude;
         }
-        
     }
     pNode = xmlNodeGetNode(pParent, "height_above_surface");
     if (pNode != NULL) {
