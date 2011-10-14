@@ -29,6 +29,8 @@
 #include "cpdUtil.h"
 #include "cpdDebug.h"
 
+#ifdef MARTIN_LOGGING
+
 #ifdef CLEAN_TRACE
 pthread_mutex_t debugLock;
 #endif
@@ -53,7 +55,10 @@ void cpdDebugInit(char *pPrefix)
 	
     result = mkdir(CPD_LOG_DIR, 0777);
     fileName[0] = 0;
-    
+
+#if (MARTIN_LOGGING == 0)    
+	return;
+#endif
     pthread_mutex_init(&debugLock, NULL);
     
     if (cpdDebugLogIndex == 0) {
@@ -121,7 +126,9 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
 	char timeStampStr[64];
 	getTimeString(timeStampStr, 60);
 #endif
-
+#if (MARTIN_LOGGING == 0)    
+	return;
+#endif
     if ((logID == 0) || ((logID & CPD_LOG_ID_CONSOLE) != 0)) {
         console = 1;
     }
@@ -161,6 +168,10 @@ void cpdDebugLogData(int logID, const char *pB, int len)
     int i = 1;
     unsigned int mask;
     int console = 0;
+
+#if (MARTIN_LOGGING == 0)    
+		return;
+#endif
     
     if ((logID == 0) || ((logID & CPD_LOG_ID_CONSOLE) != 0)) {
         console = 1;
@@ -189,6 +200,9 @@ void cpdDebugLogData(int logID, const char *pB, int len)
    
 void cpdDebugClose( void )
 {
+#if (MARTIN_LOGGING == 0)    
+		return;
+#endif
     if (pLog != NULL) {
         fclose(pLog);
     }
@@ -210,5 +224,4 @@ void cpdDebugClose( void )
 //    pthread_mutex_destroy(&debugLock);
 }
 
-
- 
+#endif /* MARTIN_LOGGING*/

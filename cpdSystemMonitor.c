@@ -52,8 +52,10 @@ static int cpdReadSystemPowerState(pCPD_CONTEXT pCpd)
 	int state = CPD_ERROR;
 	int nRd;
 	char pmStateBuffer[PM_STATE_BUFFER_SIZE];
+/*
 	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()\n", getMsecTime(), __FUNCTION__);
 	LOGD("%u:%s()", getMsecTime(), __FUNCTION__);
+*/	
 	if (pCpd->systemMonitor.pmfd < 0) {
 		LOGE("Can't read %s (fd=%d), power management not enabled!", OS_PM_CURRENT_STATE_NAME, pCpd->systemMonitor.pmfd);
 		return state;
@@ -66,11 +68,15 @@ static int cpdReadSystemPowerState(pCPD_CONTEXT pCpd)
 		return state;
 	}
 	pmStateBuffer[nRd] = 0;
+/*
 	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:PM(%d)=%s\n", getMsecTime(), nRd, pmStateBuffer);
 	LOGD("%u:PM(%d)=%s", getMsecTime(), nRd, pmStateBuffer);
+*/
 	state = atoi(pmStateBuffer);
+/*
 	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()=%d\n", getMsecTime(), __FUNCTION__, state);
 	LOGD("%u:%s()=%d", getMsecTime(), __FUNCTION__, state);
+*/
 	return state;
 }
 
@@ -82,9 +88,10 @@ static int cpdInitSystemPowerState(pCPD_CONTEXT pCpd)
 {
 	int result = CPD_ERROR;
 	int state;
-
+/*
 	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()\n", getMsecTime(), __FUNCTION__);
 	LOGD("%u:%s()", getMsecTime(), __FUNCTION__);
+*/
 	if (pCpd->systemMonitor.pmfd < 0) {
 		pCpd->systemMonitor.pmfd = open(OS_PM_CURRENT_STATE_NAME, O_RDONLY);
 	}
@@ -114,9 +121,10 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
 	int result = CPD_ERROR;
 	int ret, state;
 	struct pollfd fds;
-
+/*
 	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()\n", getMsecTime(), __FUNCTION__);
 	LOGD("%u:%s()", getMsecTime(), __FUNCTION__);
+*/	
 	if (pCpd->systemMonitor.pmfd < 0)
 	{
 		LOGE("Power management is not enabled/supported.");
