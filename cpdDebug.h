@@ -28,7 +28,7 @@
 #define CPD_LOG_ID_TXT          0x4000000
 
 #define CLEAN_TRACE 1
-#define MARTIN_LOGGING 0
+#define MARTIN_LOGGING 3
 #define xCPD_DEBUG_ADD_TIMESTAMP   1
 
 #ifdef MARTIN_LOGGING

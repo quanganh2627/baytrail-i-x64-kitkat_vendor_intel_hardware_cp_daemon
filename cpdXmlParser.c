@@ -700,7 +700,7 @@ int cpdXmlParse_ellipsoid_point_alt_uncertellipse(xmlDoc *pDoc, xmlNode *pParent
 */        
         pEllipse->coordinate.longitude = ((double) ltemp) / (90777.39816);
         CPD_LOG(CPD_LOG_ID_TXT ,"\nLongitude=%d, %08X, %f\n", ltemp, ltemp, pEllipse->coordinate.longitude);
-        LOGD("Longitude=%d, %08X, %f", ltemp, ltemp, pEllipse->coordinate.longitude);
+        LOGD("Longitude=%d %08X, %f", ltemp, ltemp, pEllipse->coordinate.longitude);
         if (ltemp >= (1 << 23)) {
             pEllipse->coordinate.longitude = -pEllipse->coordinate.longitude;
         }

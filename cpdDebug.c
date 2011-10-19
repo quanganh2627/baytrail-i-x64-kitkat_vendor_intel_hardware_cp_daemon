@@ -55,6 +55,13 @@ void cpdDebugInit(char *pPrefix)
 	
     result = mkdir(CPD_LOG_DIR, 0777);
     fileName[0] = 0;
+	
+	pLog = NULL;
+	pModemRxLog = NULL;
+	pModemTxLog = NULL;
+	pModemRxTxLog = NULL;
+	pXmlRxLog = NULL;
+	pXmlTxLog = NULL;
 
 #if (MARTIN_LOGGING == 0)    
 	return;
@@ -73,19 +80,25 @@ void cpdDebugInit(char *pPrefix)
     strcpy(cpdDebugFileName, fileName);
     
     sprintf(fileName, "%s.txt", cpdDebugFileName);
+#if (MARTIN_LOGGING > 1)    
     pLog = fopen(fileName, "w");
+#endif
 
 	if (strcmp(pPrefix, "GPS") != 0) {
+#if (MARTIN_LOGGING > 0)    
 	    sprintf(fileName, "%s_modem_rx.txt", cpdDebugFileName);
 	    pModemRxLog = fopen(fileName, "w");
 	    sprintf(fileName, "%s_modem_tx.txt", cpdDebugFileName);
 	    pModemTxLog = fopen(fileName, "w");
 	    sprintf(fileName, "%s_modem_rxtx.txt", cpdDebugFileName);
 	    pModemRxTxLog = fopen(fileName, "w");
+#endif		
+#if (MARTIN_LOGGING > 2)    
 	    sprintf(fileName, "%s_xml_rx.txt", cpdDebugFileName);
 	    pXmlRxLog = fopen(fileName, "w");
 	    sprintf(fileName, "%s_xml_tx.txt", cpdDebugFileName);
 	    pXmlTxLog = fopen(fileName, "w");
+#endif		
 	}
     cpdDebugLogIndex++;
 }
