@@ -64,6 +64,7 @@ const char *pCmdCsqQ = (AT_CMD_AT "+CSQ" AT_CMD_CRLF);
 
 
 static void cpdModemReadThreadSignalHandler(int );
+static int cpdCheckIfReceivedWaitForString(pCPD_CONTEXT  );
 
 
 static void cpdModemReadThreadSignalHandler(int sig)
@@ -561,6 +562,34 @@ int cpdModemProcessRxData(pCPD_CONTEXT pCpd)
 	return CPD_OK; /* TBD */
 }
 
+static int cpdCheckIfReceivedWaitForString(pCPD_CONTEXT pCpd)
+{
+	int result = CPD_NOK;
+	int index;
+	CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
+	LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
+	switch (pCpd->modemInfo.waitForThisResponse) {
+		case AT_RESPONSE_CRLF:
+ 			index = modem_find_str(pCpd->modemInfo.pModemRxBuffer, pCpd->modemInfo.modemRxBufferIndex, AT_CMD_CRLF, strlen(AT_CMD_CRLF));
+			if (index >= 0) {
+				result = CPD_OK;
+			}
+			break;
+		case AT_RESPONSE_ANY:
+			result = CPD_OK;
+			break;
+		default:
+			break;
+	}
+	if (result == CPD_OK) {
+		pCpd->modemInfo.haveResponse = result;
+		pCpd->modemInfo.waitForThisResponse = AT_RESPONSE_NONE;
+	}
+	CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+	LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+	return result;
+}
+
 /*
  * Copy received data into buffer and do first-pass of checking buffer for any useful data.
  */
@@ -592,6 +621,10 @@ int cpdModemReadAndCopyData(pCPD_CONTEXT pCpd, char *pRxBuffer, int len)
 	memcpy((pCpd->modemInfo.pModemRxBuffer + pCpd->modemInfo.modemRxBufferIndex), pRxBuffer, len);
 	pCpd->modemInfo.modemRxBufferIndex =  pCpd->modemInfo.modemRxBufferIndex + len;
 	pCpd->modemInfo.pModemRxBuffer[pCpd->modemInfo.modemRxBufferIndex] = 0;
+
+	if (pCpd->modemInfo.waitForThisResponse > AT_RESPONSE_OK) {
+		cpdCheckIfReceivedWaitForString(pCpd);
+	}
 
     while (pCpd->modemInfo.modemRxBufferIndex > 0) {
         tryAgain = 0;
@@ -885,6 +918,7 @@ int cpdModemOpen(pCPD_CONTEXT pCpd)
 		pCpd->modemInfo.registeredForCPOSR = 0;
 		pCpd->modemInfo.receivedCPOSRat = 0;
 		pCpd->modemInfo.registeredForCPOSRat = 0;
+		pCpd->modemInfo.waitForThisResponse = 0;
         
         if (pCpd->modemInfo.modemFd > CPD_ERROR) {
             pCpd->modemInfo.modemReadThreadState = THREAD_STATE_STARTING;

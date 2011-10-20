@@ -304,7 +304,9 @@ int cpdSendCposResponse(pCPD_CONTEXT pCpd, char *pBuff)
     sprintf(pTxBuffer, "%s%s%s%c", AT_CMD_CRLF, AT_CMD_AT, AT_CMD_CPOS, AT_CMD_CR_CHR);
 //    sprintf(pTxBuffer, "%s%s%s: ", AT_CMD_CRLF, AT_CMD_AT, AT_CMD_CPOS);
     len = len + strlen(pTxBuffer);
-    rr = cpdModemSendCommand(pCpd, pTxBuffer, strlen(pTxBuffer),3000UL);
+	pCpd->modemInfo.waitForThisResponse = AT_RESPONSE_CRLF;
+    rr = cpdModemSendCommand(pCpd, pTxBuffer, strlen(pTxBuffer),1000UL);
+	pCpd->modemInfo.waitForThisResponse = AT_RESPONSE_NONE;
     len = len + strlen(pBuff);
     rr = rr + cpdModemSendCommand(pCpd, pBuff, strlen(pBuff),0);
     sprintf(pTxBuffer, "%c%s", AT_CMD_CTRL_Z_CHR, AT_CMD_CRLF);

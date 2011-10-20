@@ -45,6 +45,9 @@
 #define	AT_RESPONSE_NONE	0
 #define	AT_RESPONSE_ERROR	1
 #define AT_RESPONSE_OK		2
+#define AT_RESPONSE_CRLF	4
+#define AT_RESPONSE_ANY		8
+
 
 #define MODEM_MUX_AT_CMD_MAX_LENGTH     (1000)
 
@@ -846,9 +849,12 @@ typedef struct {
 	char		        *pModemRxBuffer;
 	int			        modemRxBufferSize;
 	int			        modemRxBufferIndex;
+
 	int			        waitingForResponse;
+	int 				waitForThisResponse;
 	int			        haveResponse;
 	int			        responseValue;
+	
     int                 receivingXml;
 	unsigned int	    lastDataSent;
 	unsigned int	    lastDataReceived;
