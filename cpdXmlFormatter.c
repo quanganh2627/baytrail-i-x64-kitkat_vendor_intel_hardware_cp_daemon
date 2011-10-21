@@ -309,7 +309,7 @@ int cpdSendCposResponse(pCPD_CONTEXT pCpd, char *pBuff)
 	pCpd->modemInfo.waitForThisResponse = AT_RESPONSE_NONE;
     len = len + strlen(pBuff);
     rr = rr + cpdModemSendCommand(pCpd, pBuff, strlen(pBuff),0);
-    sprintf(pTxBuffer, "%c%s", AT_CMD_CTRL_Z_CHR, AT_CMD_CRLF);
+    sprintf(pTxBuffer, "%c", AT_CMD_CTRL_Z_CHR);
     len = len + strlen(pTxBuffer);
 	pCpd->modemInfo.haveResponse = 0;
 	pCpd->modemInfo.responseValue = CPD_ERROR;
