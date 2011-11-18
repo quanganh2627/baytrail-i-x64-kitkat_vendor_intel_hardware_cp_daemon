@@ -1,6 +1,7 @@
 #
 # CP DAEMON 
 #
+ifeq ($(BOARD_HAVE_GPS),true)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -64,3 +65,4 @@ LOCAL_SHARED_LIBRARIES := libicuuc libcutils
 
 LOCAL_MODULE := libCpd
 include $(BUILD_STATIC_LIBRARY)
+endif
