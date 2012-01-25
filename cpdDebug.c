@@ -11,9 +11,10 @@
  *
  *
  */
-
+ 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -70,16 +71,98 @@ static int cpdDebugFindLastIndex(char *pName)
     return result;
 }
 
+#define LOGGING_STATE_OFF     0
+#define LOGGING_STATE_ON      1
+#define DEFAULT_LOGGING_STATE LOGGING_STATE_OFF
+
+/*
+ * Read gps.conf file and check if logging is enabled.
+ */
+static int cpdParseConfigFile(char *config_file)
+{
+    FILE *fp = NULL;
+    FILE *fp_test = NULL;
+    char whitespace[] = "= \t\r\n";
+    char line[300];
+    char *config_param = NULL;
+    char *config_value = NULL;
+
+    int logging_on = -1;
+
+    if ((fp = fopen(config_file, "r")) == NULL)
+    {
+        return(logging_on);
+    }
+    logging_on = 0;
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+        if (line[0] == '#')
+        {
+         // Skip lines starting with #
+            continue;
+        }
+
+        config_param = strtok(line, whitespace);
+        if (config_param == NULL)
+        {
+               // Skip bad lines
+               continue;
+        }
+
+        config_value = strtok(NULL, whitespace);
+        if (config_value == NULL)
+        {
+            continue;
+        }
+
+        if (strcmp(config_param, "LOGGING_ON") == 0)
+        {
+            logging_on = atoi(config_value);
+        }
+        else if (strcmp(config_param, "TEST_PATH") == 0)
+        {
+            fp_test = fopen(config_value, "r");
+
+            if (fp_test == NULL)
+            {
+                // Could not open test config file
+                //Continue using current config file
+                if (logging_on < 1) {
+                    logging_on = -1;
+                }
+            }
+            else
+            {
+                fclose(fp);
+                fp = fp_test;
+            }
+        }
+        else
+        {
+            //"UNKNOWN Config Param
+            continue;
+        }
+
+    }
+    fclose(fp);
+    return logging_on;
+}
+
 void cpdDebugInit(char *pPrefix)
 {
     int result;
     char fileName[FILE_NAME_BUFF_LEN];
-    /* GPS library also uses this directory to store log files */
-    result = mkdir(CPD_LOG_DIR, 0777);
-    fileName[0] = 0;
     int isGps = 0;
-    int configFileFd;
+    int loggingEnabled = 0; /* reserve values other than 0,1 for future use, expansion, logging granularity */
 
+    fileName[0] = 0;
+
+    /* check if logging is enabled */
+    loggingEnabled = cpdParseConfigFile(GPS_CFG_FILENAME);
+    if (loggingEnabled > 0) {
+        /* GPS library also uses this directory to store log files */
+        result = mkdir(CPD_LOG_DIR, 0777);
+    }
     pLog = NULL;
     pModemRxLog = NULL;
     pModemTxLog = NULL;
@@ -87,12 +170,9 @@ void cpdDebugInit(char *pPrefix)
     pXmlRxLog = NULL;
     pXmlTxLog = NULL;
 
-    /* check if opening transparent socket server for modem comm is enabled */
-    configFileFd = open(CPDD_LOG_ENABLE_FILENAME, O_RDONLY);
-    if (configFileFd < 0) {
+    if (loggingEnabled <= 0) {
         return;
     }
-    close(configFileFd);
 
     pthread_mutex_init(&debugLock, NULL);
     if (pPrefix != NULL) {
@@ -106,7 +186,7 @@ void cpdDebugInit(char *pPrefix)
     }
     snprintf(cpdDebugFileName, MAX_FILE_NAME_LEN, "%s", fileName);
     cpdDebugLogIndex = cpdDebugFindLastIndex(cpdDebugFileName);
-
+    
     snprintf(fileName, sizeof(fileName), "%s_%03d.txt", cpdDebugFileName, cpdDebugLogIndex);
     pLog = fopen(fileName, "w");
 
@@ -124,7 +204,6 @@ void cpdDebugInit(char *pPrefix)
     }
     cpdDebugLogIndex++;
 }
-
 
 FILE *cpdGetLogFp(int logID)
 {
@@ -180,7 +259,7 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
             }
         }
     }
-#endif
+#endif    
     i = 1;
     while (logID != 0) {
         mask = (1 << i);
@@ -193,7 +272,7 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
         else {
             result = vfprintf(fp, pFormat, args);
         }
-
+            
 //            fwrite(timeStampStr, strlen(timeStampStr), 1, fp);
 //            fprintf(fp,"%s", timeStampStr);
 #else
@@ -215,7 +294,6 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
     }
     va_end(args);
 }
-
 
 void cpdDebugLogData(int logID, const char *pB, int len)
 {
@@ -240,7 +318,7 @@ void cpdDebugLogData(int logID, const char *pB, int len)
             else {
                 fflush(fp);
             }
-
+                
         }
         logID = logID & (~mask);
         i++;
@@ -249,7 +327,7 @@ void cpdDebugLogData(int logID, const char *pB, int len)
         printf("\r\nLogData(%d)=[%s]", len, pB);
     }
 }
-
+   
 void cpdDebugClose( void )
 {
     if (pLog != NULL) {
@@ -274,3 +352,4 @@ void cpdDebugClose( void )
 }
 
 #endif /* MARTIN_LOGGING*/
+
