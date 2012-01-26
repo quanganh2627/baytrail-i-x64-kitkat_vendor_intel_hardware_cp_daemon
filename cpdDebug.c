@@ -88,6 +88,7 @@ static int cpdParseConfigFile(char *config_file)
     char *config_value = NULL;
 
     int logging_on = -1;
+    int parsed_test_file = 0;
 
     if ((fp = fopen(config_file, "r")) == NULL)
     {
@@ -121,20 +122,24 @@ static int cpdParseConfigFile(char *config_file)
         }
         else if (strcmp(config_param, "TEST_PATH") == 0)
         {
-            fp_test = fopen(config_value, "r");
+            if (!parsed_test_file)
+            {
+                fp_test = fopen(config_value, "r");
 
-            if (fp_test == NULL)
-            {
-                // Could not open test config file
-                //Continue using current config file
-                if (logging_on < 1) {
-                    logging_on = -1;
+                if (fp_test == NULL)
+                {
+                    // Could not open test config file
+                    //Continue using current config file
+                    if (logging_on < 1) {
+                        logging_on = -1;
+                    }
                 }
-            }
-            else
-            {
-                fclose(fp);
-                fp = fp_test;
+                else
+                {
+                    fclose(fp);
+                    fp = fp_test;
+                }
+                parsed_test_file = 1;
             }
         }
         else
