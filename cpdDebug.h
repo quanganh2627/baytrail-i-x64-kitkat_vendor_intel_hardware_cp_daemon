@@ -32,7 +32,6 @@
 #define CPD_DEBUG_ADD_TIMESTAMP     1
 
 #ifdef MARTIN_LOGGING
-#define GPS_CFG_FILENAME            "/system/etc/gps.conf"
 void cpdDebugInit(char *prefix);
 void cpdDebugLog(int logID, const char *pFormat, ...);
 void cpdDebugLogData(int logID, const char *pB, int len);

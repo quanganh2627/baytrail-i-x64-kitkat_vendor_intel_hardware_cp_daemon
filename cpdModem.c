@@ -69,7 +69,7 @@ int modemOpen(char * name, int openOptions)
          options.c_oflag &= ~OPOST;
          options.c_cc[VMIN]  = 1;
          options.c_cc[VTIME] = 10;
-    
+
          */
 	/* Set the new options for the port: */
 	result = tcsetattr(fd, TCSANOW, &options);

@@ -43,7 +43,7 @@ int cpdStart(pCPD_CONTEXT pCpd)
 {
     int result = CPD_OK;
     int r;
-    int configFiled;
+    int tcpIpSocketEnable;
 
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()", getMsecTime(), __FUNCTION__);
     LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
@@ -94,9 +94,8 @@ int cpdStart(pCPD_CONTEXT pCpd)
         }
     }
     /* check if opening transparent socket server for modem comm is enabled */
-    configFiled = open(SOCKET_PORT_MODEM_COMM_ENABLE_FILENAME, O_RDONLY);
-    if (configFiled >= 0) {
-        close(configFiled);
+    tcpIpSocketEnable = cpdParseConfigFile(GPS_CFG_FILENAME);
+    if (tcpIpSocketEnable > 0) {
         pCpd->ssModemComm.type = SOCKET_SERVER_TYPE_SERVER;
         pCpd->ssModemComm.initialized = CPD_NOK;
         pCpd->ssModemComm.maxConnections = SOCKET_SERVER_MODEM_COMM_MAX_CONNECTIONS;
@@ -151,5 +150,4 @@ int cpdStart(pCPD_CONTEXT pCpd)
     LOGD("%u: %s()=%d\n", getMsecTime(), __FUNCTION__, result);
     return result;
 }
-
 

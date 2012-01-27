@@ -160,5 +160,81 @@ int cpdCreateThread()
 }
 
 
+/*
+ * Read gps.conf file and check if logging is enabled.
+ */
+int cpdParseConfigFile(char *config_file)
+{
+    FILE *fp = NULL;
+    FILE *fp_test = NULL;
+    char whitespace[] = "= \t\r\n";
+    char line[300];
+    char *config_param = NULL;
+    char *config_value = NULL;
 
+    int logging_on = -1;
+    int parsed_test_file = 0;
+
+    if ((fp = fopen(config_file, "r")) == NULL)
+    {
+        return(logging_on);
+    }
+    logging_on = 0;
+    while (fgets(line, sizeof(line), fp) != NULL)
+    {
+        if (line[0] == '#')
+        {
+         // Skip lines starting with #
+            continue;
+        }
+
+        config_param = strtok(line, whitespace);
+        if (config_param == NULL)
+        {
+               // Skip bad lines
+               continue;
+        }
+
+        config_value = strtok(NULL, whitespace);
+        if (config_value == NULL)
+        {
+            continue;
+        }
+
+        if (strcmp(config_param, "LOGGING_ON") == 0)
+        {
+            logging_on = atoi(config_value);
+        }
+        else if (strcmp(config_param, "TEST_PATH") == 0)
+        {
+            if (!parsed_test_file)
+            {
+                fp_test = fopen(config_value, "r");
+
+                if (fp_test == NULL)
+                {
+                    // Could not open test config file
+                    //Continue using current config file
+                    if (logging_on < 1) {
+                        logging_on = -1;
+                    }
+                }
+                else
+                {
+                    fclose(fp);
+                    fp = fp_test;
+                }
+                parsed_test_file = 1;
+            }
+        }
+        else
+        {
+            //"UNKNOWN Config Param
+            continue;
+        }
+
+    }
+    fclose(fp);
+    return logging_on;
+}
 

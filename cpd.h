@@ -822,7 +822,7 @@ typedef struct {
  *   END of                  3GPP XML structures and definitions
  *
  *****************************************************************************/
-
+#define GPS_CFG_FILENAME "/system/etc/secgps.conf"
 
 #define RUN_STOPPED     0
 #define RUN_TERMINATE   2
@@ -847,7 +847,7 @@ typedef struct {
 #endif
 #define SOCKET_SERVER_GPS_COMM_MAX_CONNECTIONS   (1)
 
-#define SOCKET_PORT_MODEM_COMM_ENABLE_FILENAME  "/data/data/secgps.conf"
+#define SOCKET_PORT_MODEM_COMM_ENABLE_FILENAME  GPS_CFG_FILENAME
 #define SOCKET_PORT_MODEM_COMM  4122
 #define SOCKET_SERVER_MODEM_COMM_MAX_CONNECTIONS   (1)
 
@@ -972,5 +972,4 @@ typedef struct {
 } CPD_CONTEXT, *pCPD_CONTEXT;
 
 #endif
-
 
