@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>  /* used with cleint sockets */
@@ -40,19 +40,22 @@ typedef enum {
     SOCKET_STATE_TERMINATED
 } SOCKET_STATE_E;
 
-
+#define SOCKET_NAME_MAX_LEN (128)
 typedef enum {
     SOCKET_SERVER_TYPE_NONE,
     SOCKET_SERVER_TYPE_SERVER,
-    SOCKET_SERVER_TYPE_CLIENT
+    SOCKET_SERVER_TYPE_CLIENT,
+    SOCKET_SERVER_TYPE_SERVER_LOCAL,
+    SOCKET_SERVER_TYPE_CLIENT_LOCAL
 } SOCKET_SERVER_TYPE_E;
 
 typedef struct {
     int                 state;
     int                 fd;
     struct sockaddr_in  destAddr;
+    char                localSocketname[SOCKET_NAME_MAX_LEN];
     char                *pRxBuff;
-    pthread_t 	        clientReadThread;
+    pthread_t           clientReadThread;
     fSOCKET_READ_CB     *pfReadCallback;
 } SOCKET_CLIENT, *pSOCKET_CLIENT;
 
@@ -61,11 +64,11 @@ typedef struct {
     SOCKET_SERVER_TYPE_E    type;
     int                 portNo;
     struct sockaddr_in  serverAddr;
+    char                localSocketname[SOCKET_NAME_MAX_LEN];
+
     int                 sockfd;
-	pthread_t 	        socketAcceptThread;
+    pthread_t           socketAcceptThread;
     int                 state;
-    
-    
     int                 maxConnections;
     SOCKET_CLIENT       clients[SOCKET_SERVER_MAX_FD];
     fSOCKET_READ_CB     *pfReadCallback; /* all sockets share the same read calback function */
@@ -75,7 +78,7 @@ typedef struct {
 typedef struct {
     int             socketIndex;
     pSOCKET_SERVER  pSS;
-} SOCKET_SERVER_READ_THREAD_LINK, *pSOCKET_SERVER_READ_THREAD_LINK;    
+} SOCKET_SERVER_READ_THREAD_LINK, *pSOCKET_SERVER_READ_THREAD_LINK;
 
 int cpdSocketServerInit(pSOCKET_SERVER );
 int cpdSocketServerOpen(pSOCKET_SERVER );
@@ -93,4 +96,5 @@ int cpdSocketWriteToIndex(pSOCKET_SERVER , char *, int , int );
 
 
 #endif
+
 

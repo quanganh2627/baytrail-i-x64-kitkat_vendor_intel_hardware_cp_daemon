@@ -12,4 +12,4 @@
 #define _CPDXMLFORMATTER_H_
 int cpdSendCpPositionResponseToModem(pCPD_CONTEXT );
 #endif   /* _CPDXMLFORMATTER_H_ */
-  
+

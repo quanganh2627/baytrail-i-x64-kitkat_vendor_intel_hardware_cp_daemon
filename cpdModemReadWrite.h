@@ -17,4 +17,3 @@ int cpdModemOpen(pCPD_CONTEXT );
 int cpdModemInitForCP(pCPD_CONTEXT );
 int cpdModemClose(pCPD_CONTEXT );
 #endif  /* _CPDMODEM_RW_H_ */
- 

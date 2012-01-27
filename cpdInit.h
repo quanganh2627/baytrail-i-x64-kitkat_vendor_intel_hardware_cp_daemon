@@ -14,7 +14,5 @@
 pCPD_CONTEXT cpdInit(void);
 pCPD_CONTEXT cpdGetContext(void);
 
-
- 
 void cpdDeInit(void);
 

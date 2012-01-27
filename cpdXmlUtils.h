@@ -9,18 +9,15 @@
 
 #ifndef _CPDXMLUTILS_H_
 #define _CPDXMLUTILS_H_
- 
+
 char *xmlBoolToString(int value);
 int xmlStringToBool(xmlChar *value);
 int xmlStringToInt(xmlChar *value);
 long xmlStringToLong(xmlChar *value);
 
- 
 int xmlNodeGetInt(xmlNode *pNode, int *pValue);
 int xmlNodeGetLong(xmlNode *pNode, long *pValue);
 int xmlNodeGetStr(xmlNode *pNode, char *pValue, int);
-
-
 
 int xmlStringTo3GPP_meas_interval(xmlChar *value);
 int xmlStringTo3GPP_rep_amount(xmlChar *value);

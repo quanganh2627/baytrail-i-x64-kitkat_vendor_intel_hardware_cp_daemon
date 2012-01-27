@@ -7,7 +7,7 @@
  *
  *
  */
- 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,66 +18,68 @@
 
 static struct timeval start_time;
 
-void initTime(void) 
+void initTime(void)
 {
-	gettimeofday(&start_time, NULL);
+    gettimeofday(&start_time, NULL);
 }
 
-unsigned int get_msec_time_now(void) 
+unsigned int get_msec_time_now(void)
 {
-	struct timeval t;
-	unsigned int tMsec;
-	gettimeofday(&t, NULL);
-	tMsec = (t.tv_sec) * 1000 + (t.tv_usec)/1000;
-	return tMsec;
+    struct timeval t;
+    unsigned int tMsec;
+    gettimeofday(&t, NULL);
+    tMsec = (t.tv_sec) * 1000 + (t.tv_usec)/1000;
+    return tMsec;
 }
 
-unsigned int getMsecTime(void) 
+unsigned int getMsecTime(void)
 {
-	struct timeval t;
-	unsigned int tMsec;
-	gettimeofday(&t, NULL);
-	tMsec = (t.tv_sec - start_time.tv_sec) * 1000 + (t.tv_usec - start_time.tv_usec)/1000;
-	return tMsec;
+    struct timeval t;
+    unsigned int tMsec;
+    gettimeofday(&t, NULL);
+    tMsec = (t.tv_sec - start_time.tv_sec) * 1000 + (t.tv_usec - start_time.tv_usec)/1000;
+    return tMsec;
 }
 
-int getTimeString(char *pS, int len) 
+int getTimeString(char *pS, int len)
 {
-	struct tm local;
-	struct timespec ts;
+    struct tm local;
+    struct timespec ts;
 
-	pS[0] = 0;
-	if ( clock_gettime( CLOCK_REALTIME, &ts ) != 0 ) {
-		local = *localtime(&ts.tv_sec);
-		snprintf(pS, len, "<%02d:%02d:%02d.%03u> ",local.tm_hour, local.tm_min, local.tm_sec, (unsigned int) (ts.tv_nsec/1000000UL));
-		return strlen(pS);
-	}
-	return 0;
+    pS[0] = 0;
+    if ( clock_gettime( CLOCK_REALTIME, &ts ) == 0 ) {
+        localtime_r(&ts.tv_sec, &local);
+        snprintf(pS, len, "<%02d:%02d:%02d:%02d.%06u>:",
+            local.tm_mday,
+            local.tm_hour, local.tm_min, local.tm_sec, (unsigned int) (ts.tv_nsec/1000UL));
+        return strlen(pS);
+    }
+    return 0;
 }
 
 
 unsigned int getMsecDt(unsigned int t)
 {
-	unsigned int tNow = getMsecTime();
-	if (t > tNow){
-		return t - tNow;
-	}
-	return tNow - t;
+    unsigned int tNow = getMsecTime();
+    if (t > tNow){
+        return t - tNow;
+    }
+    return tNow - t;
 }
 
 int cpdMoveBufferLeft(char *pB, int *pIndex, int left)
 {
-	if (left < 0) {
-		return *pIndex;
-	}
-	
-	if (left > *pIndex) {
-		left = *pIndex;
-	}
-	memmove(pB, (pB + left), *pIndex);
-	*pIndex = *pIndex - left;
+    if (left < 0) {
+        return *pIndex;
+    }
 
-	return *pIndex;
+    if (left > *pIndex) {
+        left = *pIndex;
+    }
+    memmove(pB, (pB + left), *pIndex);
+    *pIndex = *pIndex - left;
+
+    return *pIndex;
 }
 
 /*
@@ -85,13 +87,13 @@ int cpdMoveBufferLeft(char *pB, int *pIndex, int left)
  */
 int readUserChoice(void)
 {
-	int choice;
-	char response[10];
+    int choice;
+    char response[10];
 
-	do {
-		fgets(response, 9, stdin);
-	}while ((sscanf(response, "%d", &choice) != 1) );
-	return choice;
+    do {
+        fgets(response, 9, stdin);
+    }while ((sscanf(response, "%d", &choice) != 1) );
+    return choice;
 }
 
 /*
@@ -100,18 +102,18 @@ int readUserChoice(void)
  */
 int cpdFindString(char *pB, int len, char *findMe, int lenStr)
 {
-	int result = -1;
-	char *pS = NULL;
+    int result = -1;
+    char *pS = NULL;
     char *pC = NULL;
     char *pN = NULL;
     int i = 0;
 
-	if (len <= 0) {
-		return result;
-	}
-	if (pB == NULL) {
-		return result;
-	}
+    if (len <= 0) {
+        return result;
+    }
+    if (pB == NULL) {
+        return result;
+    }
     pN = pB;
     while ((result < 0) && (i < len)) {
         while (i < len) {
@@ -121,25 +123,25 @@ int cpdFindString(char *pB, int len, char *findMe, int lenStr)
             }
             i++;
         }
-            
+
         if (pC != NULL) {
-        	pS = strstr(pC, findMe);
-        	if (pS != NULL){
-        		result = (int) (pS - pB);
-        		if (result > len) {
-        			result = -1;
-        		}
+            pS = strstr(pC, findMe);
+            if (pS != NULL){
+                result = (int) (pS - pB);
+                if (result > len) {
+                    result = -1;
+                }
                 else {
                     break;
                 }
-        	}
+            }
         }
         else {
             break;
         }
         i++;
     }
-	return result;
+    return result;
 }
 
 /*
@@ -147,15 +149,16 @@ int cpdFindString(char *pB, int len, char *findMe, int lenStr)
  */
 int cpdCreateThread()
 {
-	int result = 0;
-/*	result = pthread_create(&(pCpd->modemInfo.modemReadThread), NULL, cpdModemReadThreadLoop, (void *) pCpd);
-	usleep(1000);
-	if ((result == 0) && (pCpd->modemInfo.modemReadThreadState == THREAD_STATE_RUNNING)) {
-		result = 1; 
-	}
-*/	
-	return result;
+    int result = 0;
+/*  result = pthread_create(&(pCpd->modemInfo.modemReadThread), NULL, cpdModemReadThreadLoop, (void *) pCpd);
+    usleep(1000);
+    if ((result == 0) && (pCpd->modemInfo.modemReadThreadState == THREAD_STATE_RUNNING)) {
+        result = 1;
+    }
+*/
+    return result;
 }
+
 
 
 

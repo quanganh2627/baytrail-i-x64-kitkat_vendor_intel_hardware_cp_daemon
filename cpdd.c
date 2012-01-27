@@ -20,7 +20,7 @@
  *
  *
  */
- 
+
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define LOG_NDEBUG 0    /* control debug logging */
+//#define LOG_NDEBUG 0    /* control debug logging */
 #define LOG_TAG "CPDD"
 
 
@@ -51,18 +51,18 @@ static int cpdDeamonRun;
 static void cpdDeamonSignalHandler(int sig)
 {
     pid_t pid;
-	CPD_LOG(CPD_LOG_ID_TXT, "Signal(%s)=%d\n", __FUNCTION__, sig);
-	LOGV("Signal(%s)=%d", __FUNCTION__, sig);
-	switch (sig) {
-	case SIGHUP:
-	case SIGTERM:
-	case SIGQUIT:
+    CPD_LOG(CPD_LOG_ID_TXT, "Signal(%s)=%d\n", __FUNCTION__, sig);
+    LOGV("Signal(%s)=%d", __FUNCTION__, sig);
+    switch (sig) {
+    case SIGHUP:
+    case SIGTERM:
+    case SIGQUIT:
     case SIGINT:
-	case SIGUSR1:
+    case SIGUSR1:
     case SIGSTOP:
         pid = getpid();
         kill(pid, SIGSTOP);
-	}
+    }
 }
 
 
@@ -70,7 +70,7 @@ void daemonize(void) {
     int fd;
     pid_t pid, sid, parent;
 
-	CPD_LOG(CPD_LOG_ID_TXT, "\nDeamonizing PID=%d, PPID=%d",  getpid(), getppid() );
+    CPD_LOG(CPD_LOG_ID_TXT, "\nDeamonizing PID=%d, PPID=%d",  getpid(), getppid() );
     if ( getppid() == 1 ){
         return; /* already a deamon */
     }
@@ -78,12 +78,12 @@ void daemonize(void) {
     signal(SIGCHLD,cpdDeamonSignalHandler);
     signal(SIGUSR1,cpdDeamonSignalHandler);
     signal(SIGALRM,cpdDeamonSignalHandler);
-    
+
     switch (fork()) {
     case 0:
         break;
     case -1:
-        // Error
+        /* Error */
         exit(0);
         break;
     default:
@@ -97,13 +97,13 @@ void daemonize(void) {
     case 0:
         break;
     case -1:
-        // Error
+        /* Error */
         exit(0);
         break;
     default:
         _exit(0);
     }
-    
+
     /* enable access to filesystem */
     /* unmask(0); ? it is n ot in <sys/stat.h> */
 
@@ -114,11 +114,11 @@ void daemonize(void) {
     signal(SIGTTIN,SIG_IGN);
     signal(SIGHUP, SIG_IGN); /* Ignore hangup signal */
     signal(SIGTERM,SIG_DFL); /* Die on SIGTERM */
-    
+
     if ((chdir("/")) < 0) {
         LOGW("PID=%d, PPID=%d, !ERROR, Can't cd / ",  getpid(), getppid() );
         CPD_LOG(CPD_LOG_ID_TXT, "\n PID=%d, PPID=%d, !ERROR, Can't cd / ",  getpid(), getppid() );
-//        exit(0);
+/*        exit(0); */
     }
 
     fd = open("/dev/null", O_RDONLY);
@@ -141,53 +141,63 @@ void daemonize(void) {
 
 
 
-
+/*
+ * This is Unit-test code!
+ * NOT production code, must be removed from real build.
+ */
 int main(int argc, char *argv[])
 {
     int result;
     int ret;
     pid_t pid, parent;
-	pCPD_CONTEXT pCpd;
-	unsigned int t0;
+    pCPD_CONTEXT pCpd;
+    unsigned int t0;
     sigset_t waitset;
     int sig;
 
-	LOGD("Starting %s", argv[0]);
-	
-//	initTime();
-	t0 = getMsecTime();
+    LOGD("Starting %s v.%u", argv[0], CPD_MSG_VERSION);
+    t0 = getMsecTime();
     CPD_LOG_INT("CPDD");
 
     daemonize();
     pid = getpid();
     parent = getppid();
 
-    
-	pCpd = cpdInit();
-	CPD_LOG(CPD_LOG_ID_TXT, "\n%s Running as a deamon PID=%d, PPID=%d",  argv[0], pid, parent );
-	LOGV("%s Running as a deamon PID=%d, PPID=%d",  argv[0], pid, parent);
-    result = cpdStart(pCpd);
-    cpdSystemMonitorStart();
 
-    
-    sigemptyset(&waitset);
-    sigaddset(&waitset, SIGHUP);
-    sigaddset(&waitset, SIGTERM);
-    sigaddset(&waitset, SIGSTOP);
-    sigprocmask(SIG_BLOCK, &waitset, NULL);
-	CPD_LOG(CPD_LOG_ID_TXT, "\n%u: Deamon is ready and WAITing on signals (%d, %d, %d)\n", getMsecTime(),  SIGHUP, SIGTERM, SIGSTOP);
-	LOGV("%u: Deamon is ready and WAITing on signals (%d, %d, %d)", getMsecTime(),  SIGHUP, SIGTERM, SIGSTOP);
-    sigwait(&waitset, &sig);
-	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
-	LOGD("%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
-	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:STOP\n", getMsecTime());
-	LOGV("%u:STOP", getMsecTime());
+    pCpd = cpdInit();
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%s v.%08X, deamon PID=%d, PPID=%d",  argv[0], CPD_MSG_VERSION, pid, parent);
+    LOGV("%s v.%08X, deamon PID=%d, PPID=%d",  argv[0], CPD_MSG_VERSION, pid, parent);
+    if (pCpd == NULL) {
+        CPD_LOG(CPD_LOG_ID_TXT, "CPD context is NULL!!!");
+        LOGE("CPD context is NULL!!!");
+        CPD_LOG_CLOSE();
+        return 0;
+    }
+    result = cpdStart(pCpd);
+    if (result == CPD_OK) {
+        result = cpdSystemMonitorStart();
+        if (result == CPD_OK) {
+            sigemptyset(&waitset);
+            sigaddset(&waitset, SIGHUP);
+            sigaddset(&waitset, SIGTERM);
+            sigaddset(&waitset, SIGSTOP);
+            sigprocmask(SIG_BLOCK, &waitset, NULL);
+            CPD_LOG(CPD_LOG_ID_TXT, "\n%u: Deamon is ready and WAITing on signals (%d, %d, %d)\n", getMsecTime(),  SIGHUP, SIGTERM, SIGSTOP);
+            LOGV("%u: Deamon is ready and WAITing on signals (%d, %d, %d)", getMsecTime(),  SIGHUP, SIGTERM, SIGSTOP);
+            sigwait(&waitset, &sig);
+            CPD_LOG(CPD_LOG_ID_TXT, "\n%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
+            LOGD("%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
+         }
+    }
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u:STOP\n", getMsecTime());
+    LOGV("%u:STOP", getMsecTime());
     cpdStop(pCpd);
-	CPD_LOG(CPD_LOG_ID_TXT, "\n%u:END\n", getMsecTime());
-	LOGD("%u:END", getMsecTime());
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u:END\n", getMsecTime());
+    LOGD("%u:END", getMsecTime());
     CPD_LOG_CLOSE();
-    
-	return 0;
+
+    return 0;
 
 }
+
 

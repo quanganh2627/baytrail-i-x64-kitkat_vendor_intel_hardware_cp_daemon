@@ -11,7 +11,7 @@
  *
  *
  */
- 
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -36,6 +36,9 @@ pthread_mutex_t debugLock;
 #endif
 
 #define CPD_LOG_DIR     "/data/logs/gps"
+#define MAX_FILE_NAME_LEN   (254)
+#define FILE_NAME_BUFF_LEN   (MAX_FILE_NAME_LEN+2)
+#define LOG_FILES_HISTORY_SIZE  (255)
 
 FILE *pLog = NULL;
 FILE *pModemRxLog = NULL;
@@ -45,61 +48,80 @@ FILE *pXmlRxLog = NULL;
 FILE *pXmlTxLog = NULL;
 int cpdDebugLogIndex = 0;
 int cpdDebugLogTime = 0;
-char cpdDebugFileName[256];
+char cpdDebugFileName[FILE_NAME_BUFF_LEN];
 
+static int cpdDebugFindLastIndex(char *pName)
+{
+    int result = 0;
+    FILE *pLast = NULL;
+    char fileName[FILE_NAME_BUFF_LEN];
+    while (result < LOG_FILES_HISTORY_SIZE) {
+        snprintf(fileName, MAX_FILE_NAME_LEN, "%s_%03d.txt", pName, result);
+        pLast = fopen(fileName, "r");
+        if (pLast == NULL) {
+            break;
+        }
+        result++;
+        fclose(pLast);
+    }
+    if (result >= LOG_FILES_HISTORY_SIZE) {
+        result = 0;
+    }
+    return result;
+}
 
 void cpdDebugInit(char *pPrefix)
 {
     int result;
-    char fileName[256];
-	
+    char fileName[FILE_NAME_BUFF_LEN];
+    /* GPS library also uses this directory to store log files */
     result = mkdir(CPD_LOG_DIR, 0777);
     fileName[0] = 0;
-	
-	pLog = NULL;
-	pModemRxLog = NULL;
-	pModemTxLog = NULL;
-	pModemRxTxLog = NULL;
-	pXmlRxLog = NULL;
-	pXmlTxLog = NULL;
+    int isGps = 0;
+    int configFileFd;
 
-#if (MARTIN_LOGGING == 0)    
-	return;
-#endif
-    pthread_mutex_init(&debugLock, NULL);
-    
-    if (cpdDebugLogIndex == 0) {
-        cpdDebugLogTime = get_msec_time_now();
+    pLog = NULL;
+    pModemRxLog = NULL;
+    pModemTxLog = NULL;
+    pModemRxTxLog = NULL;
+    pXmlRxLog = NULL;
+    pXmlTxLog = NULL;
+
+    /* check if opening transparent socket server for modem comm is enabled */
+    configFileFd = open(CPDD_LOG_ENABLE_FILENAME, O_RDONLY);
+    if (configFileFd < 0) {
+        return;
     }
+    close(configFileFd);
+
+    pthread_mutex_init(&debugLock, NULL);
     if (pPrefix != NULL) {
-        snprintf(fileName, 250, "%s/log_%s_%09u_%d", CPD_LOG_DIR, pPrefix, cpdDebugLogTime, cpdDebugLogIndex);
+        snprintf(fileName, MAX_FILE_NAME_LEN, "%s/log_%s", CPD_LOG_DIR, pPrefix);
+        if (strcmp(pPrefix, "GPS") != 0) {
+                isGps = 1;
+        }
     }
     else {
-        snprintf(fileName, 250, "%s/log_%09u_%d", CPD_LOG_DIR, cpdDebugLogTime, cpdDebugLogIndex);
+        snprintf(fileName, MAX_FILE_NAME_LEN, "%s/log_CPDD", CPD_LOG_DIR);
     }
-    strcpy(cpdDebugFileName, fileName);
-    
-    sprintf(fileName, "%s.txt", cpdDebugFileName);
-#if (MARTIN_LOGGING > 1)    
-    pLog = fopen(fileName, "w");
-#endif
+    snprintf(cpdDebugFileName, MAX_FILE_NAME_LEN, "%s", fileName);
+    cpdDebugLogIndex = cpdDebugFindLastIndex(cpdDebugFileName);
 
-	if (strcmp(pPrefix, "GPS") != 0) {
-#if (MARTIN_LOGGING > 0)    
-	    sprintf(fileName, "%s_modem_rx.txt", cpdDebugFileName);
-	    pModemRxLog = fopen(fileName, "w");
-	    sprintf(fileName, "%s_modem_tx.txt", cpdDebugFileName);
-	    pModemTxLog = fopen(fileName, "w");
-	    sprintf(fileName, "%s_modem_rxtx.txt", cpdDebugFileName);
-	    pModemRxTxLog = fopen(fileName, "w");
-#endif		
-#if (MARTIN_LOGGING > 2)    
-	    sprintf(fileName, "%s_xml_rx.txt", cpdDebugFileName);
-	    pXmlRxLog = fopen(fileName, "w");
-	    sprintf(fileName, "%s_xml_tx.txt", cpdDebugFileName);
-	    pXmlTxLog = fopen(fileName, "w");
-#endif		
-	}
+    snprintf(fileName, sizeof(fileName), "%s_%03d.txt", cpdDebugFileName, cpdDebugLogIndex);
+    pLog = fopen(fileName, "w");
+
+    if (isGps) {
+        snprintf(fileName, sizeof(fileName), "%s_%03d_modem_rx.txt", cpdDebugFileName, cpdDebugLogIndex);
+        pModemRxLog = fopen(fileName, "w");
+        snprintf(fileName, sizeof(fileName), "%s_%03d_modem_tx.txt", cpdDebugFileName, cpdDebugLogIndex);
+        pModemTxLog = fopen(fileName, "w");
+        snprintf(fileName, sizeof(fileName), "%s_%03d_modem_rxtx.txt", cpdDebugFileName, cpdDebugLogIndex);
+        pModemRxTxLog = fopen(fileName, "w");
+        snprintf(fileName, sizeof(fileName), "%s_%03d_xml_rx.txt", cpdDebugFileName, cpdDebugLogIndex);
+        pXmlRxLog = fopen(fileName, "w");
+        snprintf(fileName, sizeof(fileName), "%s_%03d_xml_tx.txt", cpdDebugFileName, cpdDebugLogIndex);
+        pXmlTxLog = fopen(fileName, "w");
+    }
     cpdDebugLogIndex++;
 }
 
@@ -136,26 +158,47 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
     unsigned int mask;
     va_list args;
 #ifdef CPD_DEBUG_ADD_TIMESTAMP
-	char timeStampStr[64];
-	getTimeString(timeStampStr, 60);
-#endif
-#if (MARTIN_LOGGING == 0)    
-	return;
+    char timeStampStr[128];
+    char formatString[512];
+    formatString[0] = 0;
+    getTimeString(timeStampStr, 120);
 #endif
     if ((logID == 0) || ((logID & CPD_LOG_ID_CONSOLE) != 0)) {
         console = 1;
     }
     va_start(args, pFormat); //Requires the last fixed parameter (to get the address)
-    
+#ifdef CPD_DEBUG_ADD_TIMESTAMP
+    if (pFormat != NULL) {
+        if (strlen(pFormat) < 500) {
+            i = 0;
+            if ((pFormat[i] == '\r') || (pFormat[i] == '\n')) {
+                i++;
+                if (pFormat[i] == '\n') {
+                    i++;
+                }
+                snprintf(formatString, 510, "\n%s%s", timeStampStr, &(pFormat[i]));
+            }
+        }
+    }
+#endif
     i = 1;
     while (logID != 0) {
         mask = (1 << i);
         fp = cpdGetLogFp((logID & mask));
         if (fp != NULL) {
 #ifdef CPD_DEBUG_ADD_TIMESTAMP
-			fwrite(timeStampStr, 1, strlen(timeStampStr), fp);
-#endif
+        if (formatString[0] != 0) {
+            result = vfprintf(fp, formatString, args);
+        }
+        else {
             result = vfprintf(fp, pFormat, args);
+        }
+
+//            fwrite(timeStampStr, strlen(timeStampStr), 1, fp);
+//            fprintf(fp,"%s", timeStampStr);
+#else
+            result = vfprintf(fp, pFormat, args);
+#endif
             if (result < 0) {
                 cpdDebugClose();
                 cpdDebugInit(NULL);
@@ -182,10 +225,6 @@ void cpdDebugLogData(int logID, const char *pB, int len)
     unsigned int mask;
     int console = 0;
 
-#if (MARTIN_LOGGING == 0)    
-		return;
-#endif
-    
     if ((logID == 0) || ((logID & CPD_LOG_ID_CONSOLE) != 0)) {
         console = 1;
     }
@@ -201,7 +240,7 @@ void cpdDebugLogData(int logID, const char *pB, int len)
             else {
                 fflush(fp);
             }
-                
+
         }
         logID = logID & (~mask);
         i++;
@@ -210,12 +249,9 @@ void cpdDebugLogData(int logID, const char *pB, int len)
         printf("\r\nLogData(%d)=[%s]", len, pB);
     }
 }
-   
+
 void cpdDebugClose( void )
 {
-#if (MARTIN_LOGGING == 0)    
-		return;
-#endif
     if (pLog != NULL) {
         fclose(pLog);
     }

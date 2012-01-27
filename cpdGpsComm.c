@@ -21,17 +21,16 @@
 #include <errno.h>
 #include <string.h>
 #include <pthread.h>
- 
+
 #include <termios.h>
 #include <sys/poll.h>
 
 #define LOG_TAG "CPDDCOM"
 
- 
 #include "cpd.h"
 #include "cpdInit.h"
 #include "cpdUtil.h"
- 
+
 #include "cpdDebug.h"
 #include "cpdSocketServer.h"
 
@@ -53,10 +52,10 @@ void cpdLogRequestParameters_t(pCPD_CONTEXT pCpd)
     pRRLP_MEAS pRrlpMeas = &(pCpd->request.posMeas.posMeas_u.rrlp_meas);
     pLOCATION_PARAMETERS pLocationParameters = &(pGPSassist->location_parameters);
     pPOINT_ALT_UNCERTELLIPSE pEllipse = &(pLocationParameters->shape_data.point_alt_uncertellipse);
-    
-	LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
+
+    LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
     CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, REQUEST, %d, %d\n", getMsecTime(), pCpd->request.flag, sizeof(REQUEST_PARAMS));
-    
+
     CPD_LOG(CPD_LOG_ID_TXT , "\r\n RRLP_MEAS,%d, %d, %d, %d, %d\n",
         pRrlpMeas->method_type,
         pRrlpMeas->accurancy,
@@ -81,7 +80,7 @@ void cpdLogRequestParameters_t(pCPD_CONTEXT pCpd)
             pEllipse->confidence,
             pEllipse->uncert_alt);
     }
-    
+
     CPD_LOG(CPD_LOG_ID_TXT , "\r\n GPS_ASSIST,%d,%d\n",
         pGPSassist->flag,
         pGPSassist->nav_model_elem_arr_items
@@ -124,7 +123,7 @@ void cpdLogRequestParameters_t(pCPD_CONTEXT pCpd)
             pNavModelElem->ephem_and_clock.omega,
             pNavModelElem->ephem_and_clock.omega_dot,
             pNavModelElem->ephem_and_clock.idot
-            );   
+            );
     }
     CPD_LOG(CPD_LOG_ID_TXT , "\r\n REF_TIME,%d,%d,%d\n",
         pRefTime->GPS_time.GPS_TOW_msec,
@@ -143,38 +142,38 @@ void cpdLogRequestParameters_t(pCPD_CONTEXT pCpd)
                 );
         }
     }
-    
+
 }
 
 int cpdCreateLocResponseFromAssistData_t(pCPD_CONTEXT pCpd)
 {
     pLOCATION pLoc;
-	LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
-    
+    LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
+
     pLoc = &(pCpd->response.location);
 
     memset(&(pCpd->response), 0, sizeof(RESPONSE_PARAMS));
     pLoc->time_of_fix = 0;
     pLoc->location_parameters.shape_type = SHAPE_TYPE_POINT_ALT_UNCERT_ELLIPSE;
-    
+
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.latitude.north = 1;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.latitude.degrees = 3712345;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.longitude = -12212345;
-    
+
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.altitude.height_above_surface = 90;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.altitude.height = 0;
-    
+
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.uncert_semi_major = 7;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.uncert_semi_minor = 7;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.orient_major = 0;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.confidence = 100;
     pLoc->location_parameters.shape_data.point_alt_uncertellipse.uncert_alt = 10;
-    
+
     if (pCpd->request.assist_data.GPS_assist.location_parameters.shape_type == SHAPE_TYPE_POINT_ALT_UNCERT_ELLIPSE) {
         memcpy(&(pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate),
                &(pCpd->request.assist_data.GPS_assist.location_parameters.shape_data.point_alt_uncertellipse),
                sizeof(POINT_ALT_UNCERTELLIPSE));
-        pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.longitude = 
+        pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.longitude =
             pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.longitude + (rand() % 100) - (rand() % 100);
         pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.latitude.degrees =
             pLoc->location_parameters.shape_data.point_alt_uncertellipse.coordinate.latitude.degrees + (rand() % 100) - (rand() % 100);
@@ -201,15 +200,15 @@ int cpdGpsMsgFindHeadTail(pGPS_COMM_BUFFER pGpsComm)
 {
     int result = CPD_NOK;
     int *pI;
-	LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
-           
-    if ((pGpsComm->rxBufferCmdStart >= 0) && 
+    LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
+
+    if ((pGpsComm->rxBufferCmdStart >= 0) &&
         (pGpsComm->rxBufferCmdEnd > 0) &&
         (pGpsComm->rxBufferMessageType != CPD_MSG_TYPE_NONE)) {
         LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, CPD_OK);
         return CPD_OK;
     }
-    
+
     if (pGpsComm->rxBufferCmdStart < 0) {
         pGpsComm->rxBufferCmdStart = cpdFindString(pGpsComm->pRxBuffer, pGpsComm->rxBufferIndex, CPD_MSG_HEADER_TO_GPS, 0);
         if (pGpsComm->rxBufferCmdStart < 0) {
@@ -245,12 +244,12 @@ int cpdGpsMsgFindHeadTail(pGPS_COMM_BUFFER pGpsComm)
     if (pGpsComm->rxBufferCmdEnd <= pGpsComm->rxBufferCmdStart) {
         return result;
     }
-    
+
     pI++;
     pGpsComm->rxBufferCmdDataSize = *pI;
     pI++;
     pGpsComm->rxBufferCmdDataStart = (int) (((char *) pI) - pGpsComm->pRxBuffer);
-    
+
     if ((pGpsComm->rxBufferCmdDataStart + pGpsComm->rxBufferCmdDataSize) == pGpsComm->rxBufferCmdEnd) {
         result = CPD_OK;
     } else {
@@ -262,7 +261,7 @@ int cpdGpsMsgFindHeadTail(pGPS_COMM_BUFFER pGpsComm)
         pGpsComm->rxBufferCmdDataStart = CPD_ERROR;
         pGpsComm->rxBufferMessageType = CPD_ERROR;
     }
-    
+
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
@@ -274,72 +273,81 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
 {
     int result = CPD_OK;
     pGPS_COMM_BUFFER pGpsComm;
+    int sendMultipleResponses = CPD_NOK;
+    /* is this contignous-reporting mode? */
+    if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
+        if (pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_amount == 0){
+            sendMultipleResponses = CPD_OK;
+        }
+    }
+
     pGpsComm = &(pCpd->gpsCommBuffer);
-    LOGD("%u: %s(%d,%d)", getMsecTime(), __FUNCTION__, 
+    LOGD("%u: %s(%d,%d)", getMsecTime(), __FUNCTION__,
         pGpsComm->rxBufferMessageType,
         pGpsComm->rxBufferCmdDataSize);
-    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(%d,%d) \n", getMsecTime(), __FUNCTION__, 
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(%d,%d) \n", getMsecTime(), __FUNCTION__,
         pGpsComm->rxBufferMessageType,
         pGpsComm->rxBufferCmdDataSize);
-    
+
     switch (pGpsComm->rxBufferMessageType) {
         case CPD_MSG_TYPE_MEAS_ABORT_REQ:
-            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_TYPE_MEAS_ABORT_REQ, %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize); 
-            LOGD("%u: %s(CPD_MSG_TYPE_MEAS_ABORT_REQ)", getMsecTime(), __FUNCTION__); 
+            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_TYPE_MEAS_ABORT_REQ, %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
+            LOGD("%u: %s(CPD_MSG_TYPE_MEAS_ABORT_REQ)", getMsecTime(), __FUNCTION__);
             break;
         case CPD_MSG_TYPE_POS_MEAS_REQ:
-            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ, %d, %d)", getMsecTime(), __FUNCTION__, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize); 
+            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ, %d, %d)", getMsecTime(), __FUNCTION__, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
             memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
             pCpd->request.flag = CPD_ERROR;
             if ((int) sizeof(REQUEST_PARAMS) >= pGpsComm->rxBufferCmdDataSize) {
-                memcpy(&(pCpd->request), 
-                        &(pGpsComm->pRxBuffer[pGpsComm->rxBufferCmdDataStart]), 
-                        pGpsComm->rxBufferCmdDataSize); 
+                memcpy(&(pCpd->request),
+                        &(pGpsComm->pRxBuffer[pGpsComm->rxBufferCmdDataStart]),
+                        pGpsComm->rxBufferCmdDataSize);
                 if (pCpd->request.version != CPD_MSG_VERSION) {
                     pCpd->request.flag = CPD_ERROR;
                 }
             }
             if (pCpd->pfMessageHandlerInGps != NULL) {
-                pCpd->pfMessageHandlerInGps(pCpd);                
+                pCpd->pfMessageHandlerInGps(pCpd);
             }
-            
+
             /* DEBUG: */
-//            cpdLogRequestParameters_t(pCpd);                
+//            cpdLogRequestParameters_t(pCpd);
             /* end of DEBUG: */
             break;
         case CPD_MSG_TYPE_POS_MEAS_RESP:
-            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_RESP)", getMsecTime(), __FUNCTION__); 
-            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_POS_MEAS_RESP , %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize); 
+            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_RESP)", getMsecTime(), __FUNCTION__);
+            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_POS_MEAS_RESP , %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
             memset(&(pCpd->response), 0, sizeof(RESPONSE_PARAMS));
             pCpd->response.flag = CPD_ERROR;
             if ((int) sizeof(RESPONSE_PARAMS) >= pGpsComm->rxBufferCmdDataSize) {
-                memcpy(&(pCpd->response), 
-                        &(pGpsComm->pRxBuffer[pGpsComm->rxBufferCmdDataStart]), 
-                        pGpsComm->rxBufferCmdDataSize); 
+                memcpy(&(pCpd->response),
+                        &(pGpsComm->pRxBuffer[pGpsComm->rxBufferCmdDataStart]),
+                        pGpsComm->rxBufferCmdDataSize);
                 if (pCpd->response.version != CPD_MSG_VERSION) {
                     pCpd->response.flag = CPD_ERROR;
                 }
             }
             if (pCpd->pfMessageHandlerInCpd != NULL) {
                 result = pCpd->pfMessageHandlerInCpd(pCpd);
-				if (result == CPD_OK) {
-//					cpdSendStopToGPS(pCpd);
-					pCpd->request.posMeas.flag = POS_MEAS_NONE;
-					pCpd->request.assist_data.flag = CPD_NOK;
-					pCpd->request.flag = CPD_NOK;
-				}
+                if (result == CPD_OK) {
+                    if (sendMultipleResponses == CPD_NOK) {
+                        pCpd->request.posMeas.flag = POS_MEAS_NONE;
+                        pCpd->request.assist_data.flag = CPD_NOK;
+                        pCpd->request.flag = CPD_NOK;
+                    }
+                }
             }
             break;
         case CPD_MSG_TYPE_QUERRY:
-            LOGD("%u: %s(CPD_MSG_TYPE_QUERRY)", getMsecTime(), __FUNCTION__); 
-            CPD_LOG(CPD_LOG_ID_TXT , "\r\n  CPD_MSG_TYPE_QUERRY , %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize); 
+            LOGD("%u: %s(CPD_MSG_TYPE_QUERRY)", getMsecTime(), __FUNCTION__);
+            CPD_LOG(CPD_LOG_ID_TXT , "\r\n  CPD_MSG_TYPE_QUERRY , %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
             break;
         default:
-            LOGD("%u: %s(DEFAULT)", getMsecTime(), __FUNCTION__); 
-            CPD_LOG(CPD_LOG_ID_TXT , "\r\n  CPD_MSG_TYPE_QUERRY, %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);  
+            LOGD("%u: %s(DEFAULT)", getMsecTime(), __FUNCTION__);
+            CPD_LOG(CPD_LOG_ID_TXT , "\r\n  CPD_MSG_TYPE_QUERRY, %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
             break;
     }
-    
+
     pGpsComm->rxBufferCmdEnd =  pGpsComm->rxBufferCmdEnd + strlen(CPD_MSG_TAIL);
     memmove(pGpsComm->pRxBuffer, &(pGpsComm->pRxBuffer[pGpsComm->rxBufferCmdEnd]), pGpsComm->rxBufferIndex - pGpsComm->rxBufferCmdEnd);
     pGpsComm->rxBufferIndex = pGpsComm->rxBufferIndex - pGpsComm->rxBufferCmdEnd;
@@ -348,7 +356,7 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
     pGpsComm->rxBufferCmdDataSize = CPD_ERROR;
     pGpsComm->rxBufferCmdDataStart = CPD_ERROR;
     pGpsComm->rxBufferMessageType = CPD_ERROR;
-    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
+    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
 
@@ -366,8 +374,8 @@ int cpdGpsCommMsgReader(void * pArg, char *pB, int len, int index)
     pGPS_COMM_BUFFER pGpsComm;
     int copySize;
     int remaining;
-    
-    LOGD("%u: %s()", getMsecTime(), __FUNCTION__); 
+
+    LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(%d)\n", getMsecTime(), __FUNCTION__, len);
     pCpd = cpdGetContext();
     if (pCpd == NULL) {
@@ -396,9 +404,9 @@ int cpdGpsCommMsgReader(void * pArg, char *pB, int len, int index)
         if (cpdGpsMsgFindHeadTail(pGpsComm) == CPD_OK) {
             result = result + cpdGpsCommHandlePacket(pCpd);
         }
-    }   
+    }
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(%d) = %d\n", getMsecTime(), __FUNCTION__, len, result);
-    LOGD("%u: %s(%d)=%d", getMsecTime(), __FUNCTION__, len, result); 
+    LOGD("%u: %s(%d)=%d", getMsecTime(), __FUNCTION__, len, result);
     return result;
 }
 
@@ -422,11 +430,11 @@ int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT pCpd)
     int *pI;
     pSOCKET_CLIENT pSc;
 
-    LOGD("%u: %s()", getMsecTime(), __FUNCTION__); 
+    LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
 
     memset(pB, 0, 64);
-    sprintf(pB, "%s", CPD_MSG_HEADER_TO_GPS);
+    snprintf(pB, 64, "%s", CPD_MSG_HEADER_TO_GPS);
     len = strlen(pB);
     pI = (int *) &(pB[len]);
     *pI = (int) CPD_MSG_TYPE_MEAS_ABORT_REQ;
@@ -442,7 +450,7 @@ int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT pCpd)
     pSc = &(pCpd->scGps.clients[0]);
     result = cpdSocketWrite(pSc, pB, len);
     CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s, %d = %d", CPD_MSG_HEADER_TO_GPS, len, result);
-    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
+    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
 
@@ -456,10 +464,10 @@ int cpdFormatAndSendMsgToGps(pCPD_CONTEXT pCpd)
     char *pB = NULL;
     char *pC;
     int pBSize;
-    int len;    
+    int len;
     int *pI;
     pSOCKET_CLIENT pSc;
-    
+
     pBSize = strlen(CPD_MSG_HEADER_TO_GPS) + strlen(CPD_MSG_TAIL) + sizeof(REQUEST_PARAMS) + 128;
     pB = malloc(pBSize);
     if (pB == NULL) {
@@ -468,7 +476,7 @@ int cpdFormatAndSendMsgToGps(pCPD_CONTEXT pCpd)
     pCpd->request.version = CPD_MSG_VERSION;
     memset(pB, 0, pBSize);
 
-    sprintf(pB, "%s", CPD_MSG_HEADER_TO_GPS);
+    snprintf(pB, pBSize, "%s", CPD_MSG_HEADER_TO_GPS);
     len = strlen(pB);
     pI = (int *) &(pB[len]);
     *pI = (int) CPD_MSG_TYPE_POS_MEAS_REQ;
@@ -476,21 +484,21 @@ int cpdFormatAndSendMsgToGps(pCPD_CONTEXT pCpd)
     *pI = sizeof(REQUEST_PARAMS);  /* size of the structure */
     pI++;
     pC = (char*) pI;
-    memcpy(pC, &(pCpd->request),sizeof(REQUEST_PARAMS)); 
+    memcpy(pC, &(pCpd->request),sizeof(REQUEST_PARAMS));
     pC = pC + sizeof(REQUEST_PARAMS);
     len = strlen(CPD_MSG_TAIL);
     strncpy(pC, CPD_MSG_TAIL, len);
     pC = pC + len;
     len  = (int) (pC - pB);
 
-    
+
     pSc = &(pCpd->scGps.clients[0]);
     result = cpdSocketWrite(pSc, pB, len);
-    CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_TO_GPS, len, result);
-    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
-	free((void *) pB);
+    CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_TO_GPS, len, result);
+    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    free((void *) pB);
     return result;
-}   
+}
 
 /*
  * Create data packet from GPS measurements and send it to CPD.
@@ -501,7 +509,7 @@ int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd)
     char *pB = NULL;
     char *pC;
     int pBSize;
-    int len;    
+    int len;
     int *pI;
     pSOCKET_SERVER pSs;
 
@@ -513,7 +521,7 @@ int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd)
     pCpd->response.version = CPD_MSG_VERSION;
 
     memset(pB, 0, pBSize);
-    sprintf(pB, "%s", CPD_MSG_HEADER_FROM_GPS);
+    snprintf(pB, pBSize, "%s", CPD_MSG_HEADER_FROM_GPS);
     len = strlen(pB);
     pI = (int *) &(pB[len]);
     *pI = (int) CPD_MSG_TYPE_POS_MEAS_RESP;
@@ -521,34 +529,34 @@ int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd)
     *pI = sizeof(RESPONSE_PARAMS);  /* size of the structure */
     pI++;
     pC = (char*) pI;
-    memcpy(pC, &(pCpd->response), sizeof(RESPONSE_PARAMS)); 
+    memcpy(pC, &(pCpd->response), sizeof(RESPONSE_PARAMS));
     pC = pC + sizeof(RESPONSE_PARAMS);
     len = strlen(CPD_MSG_TAIL);
     strncpy(pC, CPD_MSG_TAIL, len);
     pC = pC + len;
     len  = (int) (pC - pB);
-    
+
     pSs = &(pCpd->scGps);
     result = cpdSocketWriteToAll(pSs, pB, len);
     CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_FROM_GPS, len, result);
-    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
-	free((void *) pB);
+    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    free((void *) pB);
     return result;
-}   
+}
 
 /*
  * request GPS to stop.
  */
 int cpdSendStopToGPS(pCPD_CONTEXT pCpd)
 {
-	int result = CPD_NOK;
-	memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
-	pCpd->request.flag = REQUEST_FLAG_CTRL_MSG;
-	pCpd->request.posMeas.flag = POS_MEAS_STOP_GPS;
-	result = cpdFormatAndSendMsgToGps(pCpd);
-    CPD_LOG(CPD_LOG_ID_TXT,"\n%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
-    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result); 
-	return result;
+    int result = CPD_NOK;
+    memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
+    pCpd->request.flag = REQUEST_FLAG_CTRL_MSG;
+    pCpd->request.posMeas.flag = POS_MEAS_STOP_GPS;
+    result = cpdFormatAndSendMsgToGps(pCpd);
+    CPD_LOG(CPD_LOG_ID_TXT,"\n%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    return result;
 }
 
 
