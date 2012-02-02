@@ -1,7 +1,8 @@
 #
 # CP DAEMON 
 #
-ifeq ($(BOARD_HAVE_GPS),true)
+ifeq ($(USE_GPS_CP_DAEMON),true)
+ifeq ($(BOARD_HAVE_GPS_CSR_GSD4T),true)
 
 LOCAL_PATH := $(call my-dir)
 
@@ -110,4 +111,5 @@ LOCAL_SHARED_LIBRARIES := libicuuc libcutils
 LOCAL_MODULE := cpd
 
 include $(BUILD_EXECUTABLE)
+endif
 endif
