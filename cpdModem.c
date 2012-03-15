@@ -62,21 +62,6 @@ int modemOpen(char * name, int openOptions)
     options.c_cc[VMIN] = 1;
     options.c_cc[VTIME] = 0;
 */
-    /* Recomended by Du Alek: */
-    /*
-         options.c_cflag |= CS8 | CLOCAL | CREAD;
-         options.c_iflag &= ~(INPCK | IGNPAR | PARMRK | ISTRIP | IXANY | ICRNL);
-         options.c_oflag &= ~OPOST;
-         options.c_cc[VMIN]  = 1;
-         options.c_cc[VTIME] = 10;
-
-         */
-	/* Set the new options for the port: */
-	result = tcsetattr(fd, TCSANOW, &options);
-	if (result != 0) {
-		modemClose(&fd);
-		return fd;
-	}
 
     /* Modem FW 1139 and later requre CLOCAL flag to be set, BZ#13041, Requested by Vincent P. , Marc B. Xiao Jin */
     /* Alek suggested these flag to be set in May 2011, later this was removed and replace by code above - Elvis. */

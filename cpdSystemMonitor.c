@@ -348,7 +348,6 @@ int cpdSystemMonitorStart( void )
         pCpd->systemMonitor.monitorThreadState = THREAD_STATE_STARTING;
         result = pthread_create(&(pCpd->systemMonitor.monitorThread), NULL, cpdSystemMonitorThread, (void *) pCpd);
         usleep(10000UL);
-
         CPD_LOG(CPD_LOG_ID_TXT, "\n %u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->systemMonitor.monitorThreadState);
         LOGV("%u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->systemMonitor.monitorThreadState);
         if ((result == 0) && (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_RUNNING)) {
@@ -381,5 +380,4 @@ int cpdSystemMonitorStop(pCPD_CONTEXT pCpd)
     LOGV("%u: EXIT %s()", getMsecTime(), __FUNCTION__);
     return CPD_OK;
 }
-
 

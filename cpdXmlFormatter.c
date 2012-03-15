@@ -506,4 +506,3 @@ int cpdSendCpPositionResponseToModem(pCPD_CONTEXT pCpd)
     LOGD("%u: END %s() = %d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
-
