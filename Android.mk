@@ -2,7 +2,7 @@
 # CP DAEMON 
 #
 ifeq ($(USE_GPS_CP_DAEMON),true)
-ifeq ($(BOARD_HAVE_GPS_CSR_GSD4T),true)
+ifneq (,$(filter true,$(BOARD_HAVE_GPS_CSR_GSD4T) $(BOARD_HAVE_GPS_CSR_GSD5T)))
 
 LOCAL_PATH := $(call my-dir)
 
