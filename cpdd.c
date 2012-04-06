@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     sigset_t waitset;
     int sig;
 
-    LOGD("Starting %s v.%u", argv[0], CPD_MSG_VERSION);
+    LOGD("Starting %s", argv[0]);
     t0 = getMsecTime();
     CPD_LOG_INT("CPDD");
 

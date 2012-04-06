@@ -708,4 +708,3 @@ int xmlStringToMultiPath(xmlChar *value)
 
 
 
-

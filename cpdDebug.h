@@ -46,12 +46,16 @@ extern pthread_mutex_t debugLock;
 
 #else
 
+
 #define CPD_LOG_INT(prefix)
 #define CPD_LOG(log, format, args...)
 #define CPD_LOG_DATA(log, buffer, len)
 #define CPD_LOG_CLOSE()
 
 #endif
+
+
+
 
 #endif
 

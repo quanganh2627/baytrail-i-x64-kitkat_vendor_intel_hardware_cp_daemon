@@ -72,6 +72,7 @@ static int cpdDebugFindLastIndex(char *pName)
     return result;
 }
 
+
 void cpdDebugInit(char *pPrefix)
 {
     int result;
@@ -128,6 +129,7 @@ void cpdDebugInit(char *pPrefix)
     }
     cpdDebugLogIndex++;
 }
+
 
 FILE *cpdGetLogFp(int logID)
 {
@@ -219,6 +221,7 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
     va_end(args);
 }
 
+
 void cpdDebugLogData(int logID, const char *pB, int len)
 {
     int result;
@@ -276,4 +279,3 @@ void cpdDebugClose( void )
 }
 
 #endif /* MARTIN_LOGGING*/
-

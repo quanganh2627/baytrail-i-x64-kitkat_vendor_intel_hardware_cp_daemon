@@ -432,7 +432,6 @@ typedef struct {
     int dopl1;
     dopl1_uncert_t dopl1_uncert;
 
-
 } dopl_extra_t;
 
 typedef struct {
@@ -822,7 +821,8 @@ typedef struct {
  *   END of                  3GPP XML structures and definitions
  *
  *****************************************************************************/
-#define GPS_CFG_FILENAME "/system/etc/secgps.conf"
+#define GPS_CFG_FILENAME "/system/etc/gps.conf"
+
 
 #define RUN_STOPPED     0
 #define RUN_TERMINATE   2
@@ -972,4 +972,5 @@ typedef struct {
 } CPD_CONTEXT, *pCPD_CONTEXT;
 
 #endif
+
 
