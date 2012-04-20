@@ -83,7 +83,7 @@ void daemonize(void) {
     case 0:
         break;
     case -1:
-        /* Error */
+        // Error
         exit(0);
         break;
     default:
@@ -97,7 +97,7 @@ void daemonize(void) {
     case 0:
         break;
     case -1:
-        /* Error */
+        // Error
         exit(0);
         break;
     default:
@@ -118,7 +118,7 @@ void daemonize(void) {
     if ((chdir("/")) < 0) {
         LOGW("PID=%d, PPID=%d, !ERROR, Can't cd / ",  getpid(), getppid() );
         CPD_LOG(CPD_LOG_ID_TXT, "\n PID=%d, PPID=%d, !ERROR, Can't cd / ",  getpid(), getppid() );
-/*        exit(0); */
+//        exit(0);
     }
 
     fd = open("/dev/null", O_RDONLY);
@@ -142,9 +142,8 @@ void daemonize(void) {
 
 
 /*
- * This is Unit-test code!
- * NOT production code, must be removed from real build.
- */
+Main entry point for CPDD - CP Daemon
+*/
 int main(int argc, char *argv[])
 {
     int result;

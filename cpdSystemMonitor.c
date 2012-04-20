@@ -31,6 +31,7 @@
 #include "cpdInit.h"
 #include "cpdUtil.h"
 #include "cpdModemReadWrite.h"
+#include "cpdGpsComm.h"
 #include "cpdDebug.h"
 
 /* this is from kernel-mode PM driver */
@@ -50,7 +51,7 @@ static int pmufd = -1;
 static void cpdSystemMonitorThreadSignalHandler(int );
 static int cpdInitSystemPowerState(pCPD_CONTEXT pCpd);
 static int cpdGetSystemPowerState(pCPD_CONTEXT);
-static void cpdCloseSystemPowerState(pCPD_CONTEXT );
+void cpdCloseSystemPowerState(pCPD_CONTEXT );
 static int cpdReadSystemPowerState(pCPD_CONTEXT );
 
 
@@ -121,10 +122,7 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
     int result = CPD_ERROR;
     int ret, state;
     struct pollfd fds;
-/*
-    CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()\n", getMsecTime(), __FUNCTION__);
-    LOGV("%u:%s()", getMsecTime(), __FUNCTION__);
-*/
+
     if (pCpd->systemMonitor.pmfd < 0)
     {
         LOGE("Power management is not enabled/supported.");
@@ -132,7 +130,7 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
         return result;
     }
     fds.fd = pCpd->systemMonitor.pmfd;
-    fds.events = POLLERR | POLLPRI;
+    fds.events = POLLERR | POLLPRI; // | POLLHUP | POLLIN;
     state = cpdReadSystemPowerState(pCpd);
     if ((state == OS_STATE_ON) || (state == OS_STATE_NONE)) {
         result = CPD_OK;
@@ -175,7 +173,7 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
 /*
  * Close and disable Power management.
  */
-static void cpdCloseSystemPowerState(pCPD_CONTEXT pCpd)
+void cpdCloseSystemPowerState(pCPD_CONTEXT pCpd)
 {
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()\n", getMsecTime(), __FUNCTION__);
     LOGV("%u:%s()", getMsecTime(), __FUNCTION__);
@@ -282,6 +280,64 @@ static void cpdSystemMonitorGpsSocket(pCPD_CONTEXT pCpd)
     }
 }
 
+void cpdSystemMonitorGPSOnOff(pCPD_CONTEXT pCpd)
+{
+    int sendStop = CPD_NOK;
+    int tRequired = -1;
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(%u)", getMsecTime(), __FUNCTION__, pCpd->request.status.requestReceivedAt);
+    LOGV("%u: %s()", getMsecTime(), __FUNCTION__);
+    if (pCpd->request.status.requestReceivedAt > 0)
+    {
+        CPD_LOG(CPD_LOG_ID_TXT, "\n%u: reqRec, %u, %u, %u, %u, NisOK=%d, tReq=%d", getMsecTime(),
+                pCpd->request.status.requestReceivedAt,
+                pCpd->request.status.responseFromGpsReceivedAt,
+                pCpd->request.status.responseSentToModemAt,
+                pCpd->request.status.stopSentToGpsAt,
+                cpdIsNumberOfResponsesSufficientForRequest(pCpd),
+                cpdCalcRequredTimneToServiceRequest(pCpd)
+               );
+        if ((pCpd->request.status.requestReceivedAt <= pCpd->request.status.responseFromGpsReceivedAt) &&
+            (pCpd->request.status.requestReceivedAt <= pCpd->request.status.responseSentToModemAt))
+        {
+            if (pCpd->request.status.requestReceivedAt > pCpd->request.status.stopSentToGpsAt)
+            {
+                if (cpdIsNumberOfResponsesSufficientForRequest(pCpd) == CPD_OK)
+                {
+                    LOGD("%u: Stopping GPS, requests fulfilled", getMsecTime());
+                    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %u: Stopping GPS, requests fulfilled", getMsecTime());
+                    sendStop = CPD_OK;
+                }
+            }
+        }
+        /* check total timeout */
+        if (pCpd->request.status.requestReceivedAt > pCpd->request.status.stopSentToGpsAt)
+        {
+            if (pCpd->request.status.requestReceivedAt > pCpd->request.status.stopSentToGpsAt)
+            {
+                tRequired = cpdCalcRequredTimneToServiceRequest(pCpd);
+                CPD_LOG(CPD_LOG_ID_TXT, "\n%u: tRequired= %d", getMsecTime(), tRequired);
+                if (tRequired > 0) {
+                    tRequired = tRequired * 1800; /* use 1.8 margin */
+                    if (getMsecDt(pCpd->request.status.requestReceivedAt) > (unsigned int) tRequired) {
+                        LOGD("%u: Stopping GPS, total timeout!!!", getMsecTime());
+                        CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %u: Stopping GPS, total timeout!!!", getMsecTime());
+                        sendStop = CPD_OK;
+                    }
+                }
+                if (pCpd->request.status.nResponsesSent == 0) {
+                    if (getMsecDt(pCpd->request.status.requestReceivedAt) > 120000) {
+                        LOGD("%u: Stopping GPS, total timeout, no fix!!!", getMsecTime());
+                        CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %u: Stopping GPS, total timeout, no fix!!!", getMsecTime());
+                        sendStop = CPD_OK;
+                    }
+                }
+            }
+        }
+    }
+    if (sendStop == CPD_OK){
+        cpdSendAbortToGps(pCpd);
+    }
+}
 
 void *cpdSystemMonitorThread( void *pArg)
 {
@@ -380,4 +436,93 @@ int cpdSystemMonitorStop(pCPD_CONTEXT pCpd)
     LOGV("%u: EXIT %s()", getMsecTime(), __FUNCTION__);
     return CPD_OK;
 }
+
+
+
+static void cpdSystemActiveMonitorThreadSignalHandler(int sig)
+{
+    CPD_LOG(CPD_LOG_ID_TXT, "Signal(%s)=%d\n", __FUNCTION__, sig);
+    LOGW("Signal(%s())=%d", __FUNCTION__, sig);
+    switch (sig) {
+    case SIGHUP:
+    case SIGTERM:
+    case SIGQUIT:
+    case SIGUSR1:
+        pthread_exit(0);
+    }
+}
+
+
+void *cpdSystemActiveMonitorThread( void *pArg)
+{
+    int result = CPD_ERROR;
+    pCPD_CONTEXT pCpd;
+    struct sigaction sigact;
+
+    if (pArg == NULL) {
+        return NULL;
+    }
+
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
+    LOGV("%u: %s()", getMsecTime(), __FUNCTION__);
+    /* Register the SIGUSR1 signal handler */
+    memset(&sigact, 0, sizeof(sigact));
+    sigact.sa_handler = cpdSystemActiveMonitorThreadSignalHandler;
+    sigaction(SIGUSR1, &sigact, NULL);
+
+    pCpd = (pCPD_CONTEXT) pArg;
+    pCpd->activeMonitor.lastCheck = 0;
+    if (pCpd->activeMonitor.loopInterval < 1000) {
+        pCpd->activeMonitor.loopInterval = 1000;
+    }
+    pCpd->activeMonitor.monitorThreadState = THREAD_STATE_RUNNING;
+    pCpd->activeMonitor.lastCheck = 0;
+    CPD_LOG(CPD_LOG_ID_TXT , "\n  %u: last:%u, loopInterval:%u, TS=%d\n", getMsecTime(),pCpd->activeMonitor.lastCheck, pCpd->activeMonitor.loopInterval, pCpd->activeMonitor.monitorThreadState);
+    LOGV("%u:%s(), last:%u, loopInterval:%u, TS=%d", getMsecTime(), __FUNCTION__, pCpd->activeMonitor.lastCheck, pCpd->activeMonitor.loopInterval, pCpd->activeMonitor.monitorThreadState);
+    while (pCpd->activeMonitor.monitorThreadState == THREAD_STATE_RUNNING) {
+        cpdSystemMonitorGPSOnOff(pCpd);
+        pCpd->activeMonitor.lastCheck = getMsecTime();
+        usleep(pCpd->activeMonitor.loopInterval);
+        if (isCpdSessionActive(pCpd) != CPD_OK) {
+            break;
+        }
+        if (pCpd->activeMonitor.processingRequest == CPD_NOK) {
+            break;
+        }
+    }
+    pCpd->activeMonitor.monitorThreadState = THREAD_STATE_TERMINATED;
+    CPD_LOG(CPD_LOG_ID_TXT, "\n %u: EXIT %s()", getMsecTime(), __FUNCTION__);
+    LOGV("%u: EXIT %s()", getMsecTime(), __FUNCTION__);
+    return NULL;
+}
+
+
+int cpdSystemActiveMonitorStart( void )
+{
+    int result = CPD_ERROR;
+    pCPD_CONTEXT pCpd;
+    pCpd = cpdGetContext();
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
+    LOGV("%u: %s()\n", getMsecTime(), __FUNCTION__);
+    if (pCpd == NULL) {
+        return result;
+    }
+    pCpd->activeMonitor.loopInterval = (CPD_SYSTEMMONITOR_INTERVAL_ACTIVE_SESSION * 1000UL);
+    pCpd->activeMonitor.processingRequest = CPD_OK;
+    if ((pCpd->activeMonitor.monitorThreadState == THREAD_STATE_OFF) ||
+        (pCpd->activeMonitor.monitorThreadState == THREAD_STATE_TERMINATED)) {
+        pCpd->activeMonitor.monitorThreadState = THREAD_STATE_STARTING;
+        result = pthread_create(&(pCpd->activeMonitor.monitorThread), NULL, cpdSystemActiveMonitorThread, (void *) pCpd);
+        usleep(10000UL);
+        CPD_LOG(CPD_LOG_ID_TXT, "\n %u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->activeMonitor.monitorThreadState);
+        LOGV("%u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->activeMonitor.monitorThreadState);
+        if ((result == 0) && (pCpd->activeMonitor.monitorThreadState == THREAD_STATE_RUNNING)) {
+            result = CPD_OK;
+        }
+    }
+    CPD_LOG(CPD_LOG_ID_TXT, "\n %u: %s()=%d\n", getMsecTime(), __FUNCTION__, result);
+    LOGV("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    return result;
+}
+
 

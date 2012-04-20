@@ -200,12 +200,10 @@ int cpdGpsMsgFindHeadTail(pGPS_COMM_BUFFER pGpsComm)
 {
     int result = CPD_NOK;
     int *pI;
-    LOGD("%u: %s()", getMsecTime(), __FUNCTION__);
 
     if ((pGpsComm->rxBufferCmdStart >= 0) &&
         (pGpsComm->rxBufferCmdEnd > 0) &&
         (pGpsComm->rxBufferMessageType != CPD_MSG_TYPE_NONE)) {
-        LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, CPD_OK);
         return CPD_OK;
     }
 
@@ -266,6 +264,7 @@ int cpdGpsMsgFindHeadTail(pGPS_COMM_BUFFER pGpsComm)
     return result;
 }
 
+
 /*
  *
  */
@@ -273,13 +272,6 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
 {
     int result = CPD_OK;
     pGPS_COMM_BUFFER pGpsComm;
-    int sendMultipleResponses = CPD_NOK;
-    /* is this contignous-reporting mode? */
-    if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
-        if (pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_amount == 0){
-            sendMultipleResponses = CPD_OK;
-        }
-    }
 
     pGpsComm = &(pCpd->gpsCommBuffer);
     LOGD("%u: %s(%d,%d)", getMsecTime(), __FUNCTION__,
@@ -291,11 +283,18 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
 
     switch (pGpsComm->rxBufferMessageType) {
         case CPD_MSG_TYPE_MEAS_ABORT_REQ:
-            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_TYPE_MEAS_ABORT_REQ, %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
+            CPD_LOG(CPD_LOG_ID_TXT, "\r\n  CPD_MSG_TYPE_MEAS_ABORT_REQ, %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
             LOGD("%u: %s(CPD_MSG_TYPE_MEAS_ABORT_REQ)", getMsecTime(), __FUNCTION__);
+            memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
+            pCpd->request.flag = REQUEST_FLAG_POS_MEAS;
+            pCpd->request.posMeas.flag = POS_MEAS_ABORT;
+            if (pCpd->pfMessageHandlerInGps != NULL) {
+                pCpd->pfMessageHandlerInGps(pCpd);
+            }
             break;
         case CPD_MSG_TYPE_POS_MEAS_REQ:
-            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ, %d, %d)", getMsecTime(), __FUNCTION__, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
+            CPD_LOG(CPD_LOG_ID_TXT,"%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ, %d, %d), ID=%d", getMsecTime(), __FUNCTION__, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize, pCpd->request.flag);
+            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_REQ, %d, %d), ID=%d", getMsecTime(), __FUNCTION__, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize, pCpd->request.flag);
             memset(&(pCpd->request), 0, sizeof(REQUEST_PARAMS));
             pCpd->request.flag = CPD_ERROR;
             if ((int) sizeof(REQUEST_PARAMS) >= pGpsComm->rxBufferCmdDataSize) {
@@ -309,14 +308,10 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
             if (pCpd->pfMessageHandlerInGps != NULL) {
                 pCpd->pfMessageHandlerInGps(pCpd);
             }
-
-            /* DEBUG: */
-//            cpdLogRequestParameters_t(pCpd);
-            /* end of DEBUG: */
             break;
         case CPD_MSG_TYPE_POS_MEAS_RESP:
-            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_RESP)", getMsecTime(), __FUNCTION__);
-            CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n  CPD_MSG_POS_MEAS_RESP , %d, %d, %d\n", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize);
+            LOGD("%u: %s(CPD_MSG_TYPE_POS_MEAS_RESP)=%d", getMsecTime(), __FUNCTION__, pCpd->response.flag);
+            CPD_LOG(CPD_LOG_ID_TXT , "\r\n  CPD_MSG_POS_MEAS_RESP , %d, %d, %d, ID=%d", pGpsComm->rxBufferMessageType, pGpsComm->rxBufferCmdDataStart, pGpsComm->rxBufferCmdDataSize, pCpd->response.flag);
             memset(&(pCpd->response), 0, sizeof(RESPONSE_PARAMS));
             pCpd->response.flag = CPD_ERROR;
             if ((int) sizeof(RESPONSE_PARAMS) >= pGpsComm->rxBufferCmdDataSize) {
@@ -327,10 +322,11 @@ int cpdGpsCommHandlePacket(pCPD_CONTEXT pCpd)
                     pCpd->response.flag = CPD_ERROR;
                 }
             }
+            pCpd->request.status.responseFromGpsReceivedAt = getMsecTime();
             if (pCpd->pfMessageHandlerInCpd != NULL) {
                 result = pCpd->pfMessageHandlerInCpd(pCpd);
                 if (result == CPD_OK) {
-                    if (sendMultipleResponses == CPD_NOK) {
+                    if (cpdIsNumberOfResponsesSufficientForRequest(pCpd)) {
                         pCpd->request.posMeas.flag = POS_MEAS_NONE;
                         pCpd->request.assist_data.flag = CPD_NOK;
                         pCpd->request.flag = CPD_NOK;
@@ -424,7 +420,7 @@ int cpdGpsCommMsgReader(void * pArg, char *pB, int len, int index)
 int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT pCpd)
 {
     int result = CPD_ERROR;
-    char pB[64];
+    char pB[80];
     char *pC;
     int len;
     int *pI;
@@ -449,8 +445,104 @@ int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT pCpd)
 
     pSc = &(pCpd->scGps.clients[0]);
     result = cpdSocketWrite(pSc, pB, len);
-    CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s, %d = %d", CPD_MSG_HEADER_TO_GPS, len, result);
+    CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_TO_GPS, len, result);
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    return result;
+}
+
+
+int isCpdSessionActive(pCPD_CONTEXT pCpd)
+{
+    int result = CPD_NOK;
+    if ((pCpd->request.posMeas.flag == POS_MEAS_RRC) || (pCpd->request.posMeas.flag == POS_MEAS_RRLP)) {
+        if ((pCpd->request.status.requestReceivedAt > 0) && (pCpd->request.flag == REQUEST_FLAG_POS_MEAS)) {
+            if (pCpd->request.status.requestReceivedAt > pCpd->request.status.stopSentToGpsAt)
+            {
+                result = CPD_OK;
+            }
+        }
+    }
+    return result;
+}
+
+
+/*
+Check if number of responses sent so far is sufficient to fulfill request.
+In the case where periodic updates are requested, return COD_NOK - requests are fulfiled only when requesting side stops the request
+*/
+int cpdIsNumberOfResponsesSufficientForRequest(pCPD_CONTEXT pCpd)
+{
+    int result = CPD_OK;
+    if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
+        if (pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_amount == 0){
+            result = CPD_NOK;
+        }
+        else if ((unsigned int) (pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_amount) > pCpd->request.status.nResponsesSent) {
+            result = CPD_NOK;
+        }
+    }
+    else if (pCpd->request.posMeas.flag == POS_MEAS_RRLP) {
+        if (pCpd->request.posMeas.posMeas_u.rrlp_meas.mult_sets == MULT_SETS_MULTIPLE) {
+            result = CPD_NOK;
+        }
+        else if (pCpd->request.status.nResponsesSent < 1) {
+            result = CPD_NOK;
+        }
+    }
+    return result;
+}
+
+/*
+ Return number of seconds allowed to fulfil request = initial time + number of positions (at 1/s)
+ */
+int cpdCalcRequredTimneToServiceRequest(pCPD_CONTEXT pCpd)
+{
+    int result = -1; /* infinite time */
+    if (pCpd->request.posMeas.flag == POS_MEAS_RRC) {
+        if (pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_amount == 0){
+            result = -1; /* infinite time - run until canceled */
+        }
+        else {
+            result = pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_amount *
+                    pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_interval_long +
+                    pCpd->request.posMeas.posMeas_u.rrc_meas.rep_crit.period_rep_crit.rep_interval_long;
+        }
+    }
+    else if (pCpd->request.posMeas.flag == POS_MEAS_RRLP) {
+        if (pCpd->request.posMeas.posMeas_u.rrlp_meas.mult_sets == MULT_SETS_MULTIPLE) {
+            result = -1; /* infinite time - run until canceled */
+        }
+        else if (pCpd->request.status.nResponsesSent < 1) {
+            result = pCpd->request.posMeas.posMeas_u.rrlp_meas.resp_time_seconds + 1;
+        }
+    }
+    return result;
+}
+
+
+/*
+  Function is aclled when response is sent to modem and modem acqs the message with OK.
+  It is time to stop GPS now.
+  Do not wait for the network to stop GPS if this is single-position request case.
+  If it is contignous position reporting, do not send STOP to GPS.
+ */
+int cpdSendAbortToGps(pCPD_CONTEXT pCpd)
+{
+    int result = CPD_NOK;
+
+    LOGD("%u: %s(), %u", getMsecTime(), __FUNCTION__, pCpd->request.status.stopSentToGpsAt);
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s(), %u\n", getMsecTime(), __FUNCTION__, pCpd->request.status.stopSentToGpsAt);
+    result = cpdFormatAndSendMsg_MeasAbort(pCpd);
+    usleep(1000);
+    if (result > CPD_NOK) {
+        result = CPD_OK;
+        pCpd->request.dbgStats.posAbortId++;
+        pCpd->systemMonitor.processingRequest = CPD_NOK;
+        pCpd->activeMonitor.processingRequest = CPD_NOK;
+        pCpd->request.status.stopSentToGpsAt = getMsecTime();
+    }
+    LOGD("%u: %s()=%d, %u", getMsecTime(), __FUNCTION__, result, pCpd->request.status.stopSentToGpsAt);
+    CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()=%d, %u\n", getMsecTime(), __FUNCTION__, result, pCpd->request.status.stopSentToGpsAt);
     return result;
 }
 
@@ -558,5 +650,4 @@ int cpdSendStopToGPS(pCPD_CONTEXT pCpd)
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
-
 

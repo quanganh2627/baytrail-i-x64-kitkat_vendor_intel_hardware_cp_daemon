@@ -26,6 +26,9 @@
 #include "cpdDebug.h"
 
 
+extern int cpdSendAbortToGps(pCPD_CONTEXT );
+extern int cpdIsNumberOfResponsesSufficientForRequest(pCPD_CONTEXT );
+
 int cpdSendCposResponse(pCPD_CONTEXT pCpd, char *pBuff);
 
 
@@ -478,10 +481,16 @@ int cpdSendCpPositionResponseToModem(pCPD_CONTEXT pCpd)
                 pCpd->modemInfo.responseValue = CPD_ERROR;
                 result = cpdSendCposResponse(pCpd, (char *)pXmlBuffer->content);
                 if (result == CPD_OK) {
+                    usleep(50 * MODEM_POOL_INTERVAL); /* wait for modem response, which comes in in another thread */
                     if ((pCpd->modemInfo.haveResponse != 0) &&
                         (pCpd->modemInfo.responseValue == AT_RESPONSE_OK)) {
+                        pCpd->request.status.nResponsesSent++;
                         pCpd->modemInfo.sentCPOSok = CPD_OK;
                         pCpd->systemMonitor.processingRequest = CPD_NOK;
+                        pCpd->request.status.responseSentToModemAt = getMsecTime();
+                        if (cpdIsNumberOfResponsesSufficientForRequest(pCpd) == CPD_OK) {
+                            cpdSendAbortToGps(pCpd);
+                        }
                     }
                     else {
                         result = CPD_NOK;
@@ -506,3 +515,4 @@ int cpdSendCpPositionResponseToModem(pCPD_CONTEXT pCpd)
     LOGD("%u: END %s() = %d", getMsecTime(), __FUNCTION__, result);
     return result;
 }
+

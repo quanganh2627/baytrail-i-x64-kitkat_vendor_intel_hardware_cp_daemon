@@ -37,6 +37,9 @@
 #define CPOSR_POS_ERR_ELEMENT         "pos_err"
 
 
+extern void cpdCloseSystemPowerState(pCPD_CONTEXT );
+extern int cpdSystemActiveMonitorStart( void );
+
 static int cpdConvert3GPPHorizontalAccuracyToM(int accuracyK)
 {
     int result;
@@ -421,7 +424,7 @@ static xmlChar *xmlNodeGetChildProperty(xmlNode *parent, const char *child_name,
     xmlChar *value = NULL;
     xmlNode *node;
 
-/*  node = xmlNodeGetChild(parent, child_name); */
+//  node = xmlNodeGetChild(parent, child_name);
     node = xmlNodeGetNode(parent, child_name);
     if (node != NULL) {
         value = xmlNodeGetProperty(node, property_name);
@@ -545,6 +548,7 @@ int cpdClearOldXmlData(pXML_BUFFER pXmlBuff)
             pXmlBuff->xmlBufferIndex = 0;
             pXmlBuff->lastUpdate = 0;
             return CPD_NOK;
+
         }
     }
     return result;
@@ -692,14 +696,14 @@ int cpdXmlParse_ellipsoid_point_alt_uncertellipse(xmlDoc *pDoc, xmlNode *pParent
         pEllipse->coordinate.latitude.degrees = ((double) ltemp) * LATITUDE_GPP_TO_FLOAT;
         if (pEllipse->coordinate.latitude.north == 1) {
             pEllipse->coordinate.latitude.degrees =  -pEllipse->coordinate.latitude.degrees;
-        }    /*509*/    /*533*/
+        }
         CPD_LOG(CPD_LOG_ID_TXT ,"\nLatitude=%f", pEllipse->coordinate.latitude.degrees);
     }
     pNode = xmlNodeGetNode(pParent, "longitude");
     if (pNode != NULL) {
         xmlNodeGetLong(pNode, &ltemp);
         /* Convert 3GGP value into degrees */
-        pEllipse->coordinate.longitude = ((double) ltemp) * LONGITUDE_GPP_TO_FLOAT; /*(90777.39816);*/
+        pEllipse->coordinate.longitude = ((double) ltemp) * LONGITUDE_GPP_TO_FLOAT; //(90777.39816);
         CPD_LOG(CPD_LOG_ID_TXT ,"\nLongitude=%d, %08X, %f\n", ltemp, ltemp, pEllipse->coordinate.longitude);
         LOGD("Longitude=%ld %08X, %f", ltemp, (unsigned int)ltemp, pEllipse->coordinate.longitude);
     }
@@ -714,15 +718,15 @@ int cpdXmlParse_ellipsoid_point_alt_uncertellipse(xmlDoc *pDoc, xmlNode *pParent
     pNode = xmlNodeGetNode(pParent, "uncert_semi_major");
     if (pNode != NULL) {
         xmlNodeGetInt(pNode, &(pEllipse->uncert_semi_major));
-/*        dtemp = GPP_LL_UNCERT_C * (pow(GPP_LL_UNCERT_1X, (double) pEllipse->uncert_semi_major) - 1.0);
-        pEllipse->uncert_semi_major = (int) dtemp; */
+//        dtemp = GPP_LL_UNCERT_C * (pow(GPP_LL_UNCERT_1X, (double) pEllipse->uncert_semi_major) - 1.0);
+//        pEllipse->uncert_semi_major = (int) dtemp;
         pEllipse->uncert_semi_major = cpdConvert3GPPHorizontalAccuracyToM(pEllipse->uncert_semi_major);
     }
     pNode = xmlNodeGetNode(pParent, "uncert_semi_minor");
     if (pNode != NULL) {
         xmlNodeGetInt(pNode, &(pEllipse->uncert_semi_minor));
-/*        dtemp = GPP_LL_UNCERT_C * (pow(GPP_LL_UNCERT_1X, (double) pEllipse->uncert_semi_minor) - 1.0);
-        pEllipse->uncert_semi_minor = (int) dtemp;*/
+//        dtemp = GPP_LL_UNCERT_C * (pow(GPP_LL_UNCERT_1X, (double) pEllipse->uncert_semi_minor) - 1.0);
+//        pEllipse->uncert_semi_minor = (int) dtemp;
         pEllipse->uncert_semi_minor = cpdConvert3GPPHorizontalAccuracyToM(pEllipse->uncert_semi_minor);
     }
     pNode = xmlNodeGetNode(pParent, "orient_major");
@@ -736,8 +740,8 @@ int cpdXmlParse_ellipsoid_point_alt_uncertellipse(xmlDoc *pDoc, xmlNode *pParent
     pNode = xmlNodeGetNode(pParent, "uncert_alt");
     if (pNode != NULL) {
         xmlNodeGetInt(pNode, &(pEllipse->uncert_alt));
-/*        dtemp = GPP_ALT_UNCERT_C * (pow(GPP_ALT_UNCERT_1X, (double) pEllipse->uncert_alt) - 1.0);
-        pEllipse->uncert_alt = dtemp;*/
+//        dtemp = GPP_ALT_UNCERT_C * (pow(GPP_ALT_UNCERT_1X, (double) pEllipse->uncert_alt) - 1.0);
+//        pEllipse->uncert_alt = dtemp;
         pEllipse->uncert_alt = cpdConvert3GPPVerticalAccuracyToM(pEllipse->uncert_alt);
     }
     CPD_LOG(CPD_LOG_ID_TXT , "POINT_ALT_UNCERTELLIPSE,%d,%f,%f,%d,%d,%d,%d,%d,%d,%d\n",
@@ -1235,7 +1239,7 @@ static int cpdXmlParseDoc(pCPD_CONTEXT pCpd, char *pB, int len)
     xmlNode *pNode, *pRoot;
     POS_MEAS posMeas;
 
-/*    char msg[128]; */
+//    char msg[128];
 
     /* check if xml buffer contains stale data */
     cpdClearOldXmlData(&(pCpd->xmlRxBuffer));
@@ -1342,13 +1346,23 @@ static int cpdXmlParseDoc(pCPD_CONTEXT pCpd, char *pB, int len)
         if (pCpd->request.posMeas.flag != POS_MEAS_NONE) {
             if (pCpd->request.posMeas.flag == POS_MEAS_ABORT) {
                 pCpd->request.dbgStats.posAbortId++;
+                pCpd->request.status.stopSentToGpsAt = getMsecTime();
+                pCpd->systemMonitor.processingRequest = CPD_NOK;
+                pCpd->activeMonitor.processingRequest = CPD_NOK;
             }
             if ((pCpd->request.posMeas.flag == POS_MEAS_RRLP) || (pCpd->request.posMeas.flag == POS_MEAS_RRC)) {
                 pCpd->request.dbgStats.posRequestId++;
+                cpdSystemActiveMonitorStart();
+//                cpdCloseSystemPowerState(pCpd);
             }
             pCpd->modemInfo.sentCPOSok = CPD_NOK;
-            cpdLogRequestParametersInXmlParser_t(pCpd); /* debug printout TODO: remove after it's not needed any more */
+/*            cpdLogRequestParametersInXmlParser_t(pCpd);    */ /* debug printout TODO: remove after it's not needed any more */
             pCpd->modemInfo.processingCPOSRat = getMsecTime();
+            pCpd->request.status.requestReceivedAt = getMsecTime();
+            pCpd->request.status.responseFromGpsReceivedAt = 0;
+            pCpd->request.status.responseSentToModemAt = 0;
+            pCpd->request.status.stopSentToGpsAt = 0;
+            pCpd->request.status.nResponsesSent = 0;
             if (pCpd->pfCposrMessageHandlerInCpd != NULL) {
                 pCpd->request.dbgStats.posRequestedByNetwork = 0;
                 pCpd->request.dbgStats.posRequestedFromGps = 0;
@@ -1357,11 +1371,6 @@ static int cpdXmlParseDoc(pCPD_CONTEXT pCpd, char *pB, int len)
                 pCpd->request.dbgStats.posRequestedByNetwork = getMsecTime();
                 pCpd->pfCposrMessageHandlerInCpd(pCpd);
             }
-/*
-            pCpd->request.posMeas.flag = POS_MEAS_NONE;
-            pCpd->request.assist_data.flag = CPD_NOK;
-            pCpd->request.flag = CPD_NOK;
-*/
         }
     }
     return result;

@@ -9,10 +9,6 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <utils/Log.h>
-#ifndef LOG_TAG
-#define LOG_TAG "CPDD"
-#endif
-
 #include "cpdSocketServer.h"
 
 #define CPD_OK              1
@@ -741,7 +737,7 @@ typedef struct {
 } POS_RESP_MEASUREMENTS, pPOS_RESP_MEASUREMENTS;
 
 /* update version number, when structure or it's size changes */
-#define CPD_MSG_VERSION (0x121213)
+#define CPD_MSG_VERSION (0x121218)
 
 
 /*
@@ -783,6 +779,14 @@ typedef struct {
 } REQUEST_SUMM, *pREQUEST_SUMM;
 
 typedef struct {
+    unsigned int requestReceivedAt;
+    unsigned int responseFromGpsReceivedAt;
+    unsigned int responseSentToModemAt;
+    unsigned int nResponsesSent;
+    unsigned int stopSentToGpsAt;
+} REQUEST_STATUS, *pREQUEST_STATUS;
+
+typedef struct {
     int             version;
     REQUEST_FLAG_E  flag;
     ASSIST_DATA     assist_data;
@@ -790,6 +794,7 @@ typedef struct {
     REQUEST_SUMM    rs;
 //  GPS_ASSIST_REQ  GPS_assist_req;
     POS_RESP_MEASUREMENTS   dbgStats;
+    REQUEST_STATUS      status;
 } REQUEST_PARAMS, *pREQUEST_PARAMS;
 
 typedef enum {
@@ -821,7 +826,7 @@ typedef struct {
  *   END of                  3GPP XML structures and definitions
  *
  *****************************************************************************/
-#define GPS_CFG_FILENAME "/system/etc/gps.conf"
+#define GPS_CFG_FILENAME            "/system/etc/gps.conf"
 
 
 #define RUN_STOPPED     0
@@ -875,8 +880,9 @@ typedef struct {
 #define CPD_MODEM_MONITOR_TX_INTERVAL   300000
 #define CPD_MODEM_MONITOR_CPOSR_EVENT   300000
 #define CPD_MODEM_KEEPOPENRETRYINTERVAL (3000)
-#define CPD_GPS_SOCKET_KEEPOPENRETRYINTERVAL (3000)
-#define CPD_SYSTEMMONITOR_INTERVAL      (5000)    /* interval on which CPD will check services status */
+#define CPD_GPS_SOCKET_KEEPOPENRETRYINTERVAL (3000UL)
+#define CPD_SYSTEMMONITOR_INTERVAL      (5000UL)    /* interval on which CPD will check services status */
+#define CPD_SYSTEMMONITOR_INTERVAL_ACTIVE_SESSION  (1000UL)    /* interval on which CPD will check services status */
 
 typedef struct {
     char                modemName[MODEM_NAME_MAX_LEN];
@@ -968,9 +974,9 @@ typedef struct {
 
 
     SYSTEM_MONITOR          systemMonitor;
+    SYSTEM_MONITOR          activeMonitor;
 
 } CPD_CONTEXT, *pCPD_CONTEXT;
 
 #endif
-
 

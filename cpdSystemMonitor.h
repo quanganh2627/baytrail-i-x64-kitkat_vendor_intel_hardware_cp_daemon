@@ -11,5 +11,7 @@
 #define _CPDSYSTEMMONITOR_H_
 int cpdSystemMonitorStart(void);
 int cpdSystemMonitorStop(pCPD_CONTEXT);
+int cpdStaremActiveMonitorStart( void );
+
 #endif
 
