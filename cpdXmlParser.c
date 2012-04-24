@@ -918,7 +918,7 @@ int cpdXmlParse_nav_model_elem(xmlDoc *pDoc, xmlNode *pParent, pGPS_ASSIST pGPSa
                 pNode = xmlNodeGetNode(pNodeNvm, "sat_id");
                 if (pNode != NULL) {
                     xmlNodeGetInt(pNode, &(pNavModelElem->sat_id));
-                    pNavModelElem->sat_id = pNavModelElem->sat_id++;
+                    pNavModelElem->sat_id++;
 
                     pS = xmlNodeGetChildProperty(pNodeNvm, "sat_status", "literal");
                     pNavModelElem->sat_status = xmlStringTo3GPP_nav_elem_sat_status(pS);
