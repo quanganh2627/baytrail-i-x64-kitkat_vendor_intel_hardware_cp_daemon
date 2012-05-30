@@ -20,18 +20,18 @@ LOCAL_C_INCLUDES:=          \
     external/libxml2/include
 
 LOCAL_SRC_FILES :=  cpdd.c  \
-    cpdInit.c  \
-    cpdStart.c \
-    cpdUtil.c \
-    cpdModem.c \
-    cpdModemReadWrite.c \
-    cpdXmlParser.c \
-    cpdXmlUtils.c \
-    cpdDebug.c \
-    cpdXmlFormatter.c\
-    cpdGpsComm.c  \
-    cpdSocketServer.c \
-    cpdSystemMonitor.c
+					cpdInit.c  \
+					cpdStart.c \
+					cpdUtil.c \
+					cpdModem.c \
+					cpdModemReadWrite.c \
+					cpdXmlParser.c \
+					cpdXmlUtils.c \
+					cpdDebug.c \
+					cpdXmlFormatter.c\
+					cpdGpsComm.c  \
+					cpdSocketServer.c \
+					cpdSystemMonitor.c
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
@@ -61,7 +61,7 @@ LOCAL_SRC_FILES += \
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
-LOCAL_STATIC_LIBRARIES := libc
+LOCAL_STATIC_LIBRARIES := libc 
 LOCAL_SHARED_LIBRARIES := libicuuc libcutils
 
 LOCAL_MODULE := libCpd

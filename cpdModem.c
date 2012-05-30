@@ -166,3 +166,4 @@ int modemRead(int fd, void *pBuffer, int len)
     }
     return result;
 }
+

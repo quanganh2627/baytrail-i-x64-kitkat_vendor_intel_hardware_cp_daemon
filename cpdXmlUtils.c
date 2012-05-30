@@ -706,5 +706,3 @@ int xmlStringToMultiPath(xmlChar *value)
      return res;
  }
 
-
-
