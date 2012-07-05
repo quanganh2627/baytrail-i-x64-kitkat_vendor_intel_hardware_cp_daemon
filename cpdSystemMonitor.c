@@ -39,9 +39,9 @@
 #define OS_STATE_ON         1
 #define OS_STATE_BEFORE_EARLYSUSPEND    2
 
-#define OS_PM_CURRENT_STATE_NAME "/sys/power/current_state"
+#define OS_PM_CURRENT_STATE_NAME "/sys/power/state"
 
-#define OS_PMU_CURRENT_STATE_NAME "/sys/module/mid_pmu/parameters/s0ix"
+#define OS_PMU_CURRENT_STATE_NAME "/sys/module/intel_soc_pmu/parameters/s0ix"
 static int pmufd = -1;
 
 
