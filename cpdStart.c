@@ -117,11 +117,13 @@ int cpdStart(pCPD_CONTEXT pCpd)
                 LOGD("MODEM_COMM Socket Server is ready on port %d\n", pCpd->ssModemComm.portNo);
             }
         }
-        pCpd->systemMonitor.loopInterval = CPD_SYSTEMMONITOR_INTERVAL;
     }
     else {
         CPD_LOG(CPD_LOG_ID_TXT, "\nMODEM_COMM Socket Server is NOT enabled", r);
     }
+
+    pCpd->systemMonitor.loopInterval = CPD_SYSTEMMONITOR_INTERVAL;
+
      /* for now always return OK, even if init of comm resources fails, sysyem monitor thread will restart them later.. */
     CPD_LOG(CPD_LOG_ID_TXT , "\n  %u: %s()=%d\n", getMsecTime(), __FUNCTION__, result);
     LOGD("%u: %s()=%d\n", getMsecTime(), __FUNCTION__, result);
