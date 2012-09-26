@@ -39,9 +39,9 @@
 #define OS_STATE_ON         1
 #define OS_STATE_BEFORE_EARLYSUSPEND    2
 
-#define OS_PM_CURRENT_STATE_NAME "/sys/power/state"
+#define OS_PM_CURRENT_STATE_NAME "/sys/power/current_state"
 
-#define OS_PMU_CURRENT_STATE_NAME "/sys/module/intel_soc_pmu/parameters/s0ix"
+#define OS_PMU_CURRENT_STATE_NAME "/sys/module/mid_pmu/parameters/s0ix"
 static int pmufd = -1;
 
 
@@ -60,10 +60,6 @@ static int cpdReadSystemPowerState(pCPD_CONTEXT pCpd)
     int state = CPD_ERROR;
     int nRd;
     char pmStateBuffer[PM_STATE_BUFFER_SIZE];
-    if (pCpd->systemMonitor.pmfd < 0) {
-        LOGE("Can't read %s (fd=%d), power management not enabled!", OS_PM_CURRENT_STATE_NAME, pCpd->systemMonitor.pmfd);
-        return state;
-    }
     lseek(pCpd->systemMonitor.pmfd, 0, SEEK_SET);
     nRd = read(pCpd->systemMonitor.pmfd, &pmStateBuffer, sizeof(pmStateBuffer)-1);
     if (nRd <= 0) {
@@ -84,28 +80,30 @@ static int cpdInitSystemPowerState(pCPD_CONTEXT pCpd)
 {
     int result = CPD_ERROR;
     int state;
-/*
+
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()\n", getMsecTime(), __FUNCTION__);
     LOGV("%u:%s()", getMsecTime(), __FUNCTION__);
-*/
+
     if (pCpd->systemMonitor.pmfd < 0) {
         pCpd->systemMonitor.pmfd = open(OS_PM_CURRENT_STATE_NAME, O_RDONLY);
+        if(pCpd->systemMonitor.pmfd < 0) {
+            LOGI("Power management is not enabled/supported.");
+            CPD_LOG(CPD_LOG_ID_TXT, "Power management is not enabled/supported.");
+        }
+        else {
+            state = cpdReadSystemPowerState(pCpd);
+            if (state == OS_STATE_NONE){
+                result = CPD_OK;
+            }
+            else if (state == OS_STATE_ON){
+                result = CPD_OK;
+            }
+            else {
+                result = CPD_NOK;
+            }
+        }
     }
-    state = cpdReadSystemPowerState(pCpd);
-    if (state == OS_STATE_NONE){
-        result = CPD_OK;
-    }
-    else if (state == OS_STATE_ON){
-        result = CPD_OK;
-    }
-    else {
-        result = CPD_NOK;
-    }
-    /*
-    pmufd = open(OS_PMU_CURRENT_STATE_NAME, O_RDONLY);
-    CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s(), pmufd=%d\n", getMsecTime(), __FUNCTION__, result);
-    LOGV("%u:%s(), pmufd=%d", getMsecTime(), __FUNCTION__, result);
-    */
+
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:%s()=%d\n", getMsecTime(), __FUNCTION__, result);
     LOGV("%u:%s()=%d", getMsecTime(), __FUNCTION__, result);
     return result;
@@ -125,12 +123,10 @@ static int cpdGetSystemPowerState(pCPD_CONTEXT pCpd)
 
     if (pCpd->systemMonitor.pmfd < 0)
     {
-        LOGE("Power management is not enabled/supported.");
-        CPD_LOG(CPD_LOG_ID_TXT, "Power management is not enabled/supported.");
         return result;
     }
     fds.fd = pCpd->systemMonitor.pmfd;
-    fds.events = POLLERR | POLLPRI; // | POLLHUP | POLLIN;
+    fds.events = POLLERR | POLLPRI;
     state = cpdReadSystemPowerState(pCpd);
     if ((state == OS_STATE_ON) || (state == OS_STATE_NONE)) {
         result = CPD_OK;
@@ -199,34 +195,37 @@ static void cpdSystemMonitorThreadSignalHandler(int sig)
     }
 }
 
-static void cpdSystemMonitorModem(pCPD_CONTEXT pCpd)
+// return CPD_OK when OK, CPD_NOK otherwise
+static int cpdSystemMonitorModem(pCPD_CONTEXT pCpd)
 {
-    int result;
+    int result = CPD_NOK;
     if (pCpd == NULL) {
-        return;
+        return result;
     }
     if (pCpd->modemInfo.keepOpenCtrl.keepOpen == 0) {
-        return;
+        return CPD_OK;
     }
     if ((pCpd->modemInfo.modemReadThreadState != THREAD_STATE_RUNNING) ||
         (pCpd->modemInfo.modemFd < 0)) {
         if (getMsecDt(pCpd->modemInfo.keepOpenCtrl.lastOpenAt) >= pCpd->modemInfo.keepOpenCtrl.keepOpenRetryInterval) {
             result = cpdModemOpen(pCpd);
+            return result;
         }
     }
-    return;
+    return CPD_OK;
 }
 
-static void cpdSystemMonitorRegisterForCP(pCPD_CONTEXT pCpd)
+// return CPD_OK when OK, CPD_NOK otherwise
+static int cpdSystemMonitorRegisterForCP(pCPD_CONTEXT pCpd)
 {
-    int result;
+    int result = CPD_NOK;
     int needRegistering = CPD_OK;
     int doNotRegisterNow = CPD_NOK;
     if (pCpd == NULL) {
-        return;
+        return result;
     }
     if (pCpd->modemInfo.keepOpenCtrl.keepOpen == 0) {
-        return;
+        return CPD_OK;
     }
 
     if ((pCpd->modemInfo.registeredForCPOSR == 0) ||
@@ -239,24 +238,27 @@ static void cpdSystemMonitorRegisterForCP(pCPD_CONTEXT pCpd)
     if (getMsecDt(pCpd->modemInfo.processingCPOSRat) < CPD_MODEM_MONITOR_CPOSR_EVENT) {
         doNotRegisterNow = CPD_OK;
     }
+    result = CPD_OK;
     if (pCpd->modemInfo.modemReadThreadState == THREAD_STATE_RUNNING) {
         if ((getMsecDt(pCpd->modemInfo.lastDataReceived) > CPD_MODEM_MONITOR_RX_INTERVAL) &&
             (getMsecDt(pCpd->modemInfo.lastDataSent) > CPD_MODEM_MONITOR_TX_INTERVAL)) {
             if ((needRegistering == CPD_OK) && (doNotRegisterNow == CPD_NOK)) {
-                cpdModemInitForCP(pCpd);
+                result = cpdModemInitForCP(pCpd);
             }
             else {
                 CPD_LOG(CPD_LOG_ID_TXT, "\n %u, Skip CPOSR registration, %d, %d", getMsecTime(), needRegistering, doNotRegisterNow);
             }
         }
     }
+    return result;
 }
 
-static void cpdSystemMonitorGpsSocket(pCPD_CONTEXT pCpd)
+// return CPD_OK when OK, CPD_NOK otherwise
+static int cpdSystemMonitorGpsSocket(pCPD_CONTEXT pCpd)
 {
-    int result;
+    int result = CPD_NOK;
     if (pCpd == NULL) {
-        return;
+        return result;
     }
 
     if (pCpd->scIndexToGps >= 0) {
@@ -271,13 +273,21 @@ static void cpdSystemMonitorGpsSocket(pCPD_CONTEXT pCpd)
             pCpd->scIndexToGps = cpdSocketClientOpen(&(pCpd->scGps), SOCKET_HOST_GPS, SOCKET_PORT_GPS);
             pCpd->scGpsKeepOpenCtrl.lastOpenAt = getMsecTime();
             pCpd->scGpsKeepOpenCtrl.keepOpenRetryCount++;
+            if (pCpd->scIndexToGps >= 0)
+            {
+                result = CPD_OK;
+            }
         }
     }
     else {
         if (pCpd->scGps.clients[pCpd->scIndexToGps].state != SOCKET_STATE_RUNNING) {
             cpdSocketClose(&(pCpd->scGps.clients[pCpd->scIndexToGps]));
         }
+        else {
+            result = CPD_OK;
+        }
     }
+    return result;
 }
 
 void cpdSystemMonitorGPSOnOff(pCPD_CONTEXT pCpd)
@@ -342,6 +352,7 @@ void cpdSystemMonitorGPSOnOff(pCPD_CONTEXT pCpd)
 void *cpdSystemMonitorThread( void *pArg)
 {
     int result = CPD_ERROR;
+    int n = 0;
     pCPD_CONTEXT pCpd;
     struct sigaction sigact;
 
@@ -364,20 +375,38 @@ void *cpdSystemMonitorThread( void *pArg)
     pCpd->systemMonitor.monitorThreadState = THREAD_STATE_RUNNING;
     CPD_LOG(CPD_LOG_ID_TXT , "\n  %u: last:%u, loopInterval:%u, TS=%d\n", getMsecTime(),pCpd->systemMonitor.lastCheck, pCpd->systemMonitor.loopInterval, pCpd->systemMonitor.monitorThreadState);
     LOGV("%u:%s(), last:%u, loopInterval:%u, TS=%d", getMsecTime(), __FUNCTION__, pCpd->systemMonitor.lastCheck, pCpd->systemMonitor.loopInterval, pCpd->systemMonitor.monitorThreadState);
+    usleep(20000UL); /* wait before processing events, so that callers can exit and shut-down their threads */
     while (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_RUNNING) {
         if (getMsecDt(pCpd->systemMonitor.lastCheck) >= pCpd->systemMonitor.loopInterval) {
-            cpdSystemMonitorModem(pCpd);
-            cpdSystemMonitorGpsSocket(pCpd);
-            cpdSystemMonitorRegisterForCP(pCpd);
+            result = 0;
+            result += cpdSystemMonitorModem(pCpd);
+            result += (cpdSystemMonitorGpsSocket(pCpd) << 1);
+            result += (cpdSystemMonitorRegisterForCP(pCpd) << 2);
             pCpd->systemMonitor.lastCheck = getMsecTime();
+            if(result == 7) {
+                /* If 3 OKs in a row, the monitor exits */
+                n++;
+                if(n == 3) break;
+            }
+            else {
+                n = 0;
+                CPD_LOG(CPD_LOG_ID_TXT, "\n%u: loop flags = %d\n", getMsecTime(), result);
+            }
         }
-        if (cpdGetSystemPowerState(pCpd) == CPD_OK) {
-            usleep((pCpd->systemMonitor.loopInterval / 4) * 1000UL);
+        result = cpdGetSystemPowerState(pCpd);
+        if (result == CPD_OK) {
+            sleep((pCpd->systemMonitor.loopInterval / 4) * 1000UL);
         }
         else {
-            /* try to re-initialize PM, use longer delay than in active mode */
-            usleep((pCpd->systemMonitor.loopInterval) * 1000UL);
-            cpdInitSystemPowerState(pCpd);
+            if(result == CPD_NOK) {
+                /* Read error: try to re-initialize PM, use longer delay than in active mode */
+                usleep((pCpd->systemMonitor.loopInterval) * 1000UL);
+                cpdInitSystemPowerState(pCpd);
+            }
+            else {
+                /* the power management does not exist, use even longer delay */
+                usleep((pCpd->systemMonitor.loopInterval * 2 ) * 1000UL);
+            }
         }
     }
     pCpd->systemMonitor.monitorThreadState = THREAD_STATE_TERMINATED;
@@ -389,6 +418,7 @@ void *cpdSystemMonitorThread( void *pArg)
 int cpdSystemMonitorStart( void )
 {
     int result = CPD_ERROR;
+    int retryCount = 3;
     pCPD_CONTEXT pCpd;
     pCpd = cpdGetContext();
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
@@ -399,16 +429,31 @@ int cpdSystemMonitorStart( void )
     pCpd->systemMonitor.pmfd = -1;
     cpdInitSystemPowerState(pCpd);
 
-    if ((pCpd->systemMonitor.monitorThreadState == THREAD_STATE_OFF) ||
-        (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_TERMINATED)) {
-        pCpd->systemMonitor.monitorThreadState = THREAD_STATE_STARTING;
-        result = pthread_create(&(pCpd->systemMonitor.monitorThread), NULL, cpdSystemMonitorThread, (void *) pCpd);
-        usleep(10000UL);
-        CPD_LOG(CPD_LOG_ID_TXT, "\n %u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->systemMonitor.monitorThreadState);
-        LOGV("%u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->systemMonitor.monitorThreadState);
-        if ((result == 0) && (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_RUNNING)) {
-            result = CPD_OK;
+    while (result != CPD_OK)
+    {
+        if ((pCpd->systemMonitor.monitorThreadState == THREAD_STATE_OFF) ||
+            (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_TERMINATED))
+        {
+            pCpd->systemMonitor.monitorThreadState = THREAD_STATE_STARTING;
+            result = pthread_create(&(pCpd->systemMonitor.monitorThread), NULL, cpdSystemMonitorThread, (void *) pCpd);
+            usleep(10000UL);
+            CPD_LOG(CPD_LOG_ID_TXT, "\n %u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->systemMonitor.monitorThreadState);
+            LOGV("%u: %s():%d, %d\n", getMsecTime(), __FUNCTION__, result, pCpd->systemMonitor.monitorThreadState);
+            if ((result == 0) && (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_RUNNING))
+            {
+                result = CPD_OK;
+            }
         }
+        else
+        {
+            usleep(10000UL);
+        }
+        retryCount--;
+        if (retryCount <= 0) break;
+    }
+    if (pCpd->systemMonitor.monitorThreadState == THREAD_STATE_STARTING)
+    {
+        pCpd->systemMonitor.monitorThreadState = THREAD_STATE_OFF;
     }
     CPD_LOG(CPD_LOG_ID_TXT, "\n %u: %s()=%d\n", getMsecTime(), __FUNCTION__, result);
     LOGV("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);

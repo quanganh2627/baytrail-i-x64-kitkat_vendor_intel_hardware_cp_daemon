@@ -447,6 +447,14 @@ int cpdFormatAndSendMsg_MeasAbort(pCPD_CONTEXT pCpd)
     result = cpdSocketWrite(pSc, pB, len);
     CPD_LOG(CPD_LOG_ID_TXT | CPD_LOG_ID_CONSOLE, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_TO_GPS, len, result);
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
+    if(result == CPD_ERROR)
+    {
+        if(pCpd->pfSystemMonitorStart != NULL)
+        {
+            CPD_LOG(CPD_LOG_ID_TXT, "\nStarting SystemMonitor!");
+            pCpd->pfSystemMonitorStart();
+        }
+    }
     return result;
 }
 
@@ -633,6 +641,14 @@ int cpdFormatAndSendMsgToCpd(pCPD_CONTEXT pCpd)
     CPD_LOG(CPD_LOG_ID_TXT, "\r\n %u, %s([%s]) = %d = %d", getMsecTime(), __FUNCTION__, CPD_MSG_HEADER_FROM_GPS, len, result);
     LOGD("%u: %s()=%d", getMsecTime(), __FUNCTION__, result);
     free((void *) pB);
+    if(result != CPD_OK)
+    {
+        if(pCpd->pfSystemMonitorStart != NULL)
+        {
+            CPD_LOG(CPD_LOG_ID_TXT, "\nStarting SystemMonitor!");
+            pCpd->pfSystemMonitorStart();
+        }
+    }
     return result;
 }
 

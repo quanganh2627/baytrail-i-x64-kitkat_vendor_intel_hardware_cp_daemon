@@ -103,6 +103,12 @@ int cpdModemSendCommand(pCPD_CONTEXT pCpd, const char *pB, int len, unsigned int
     }
 
     result = modemWrite(pCpd->modemInfo.modemFd, (void *) pB, len);
+    if(result < 0) {
+        if(pCpd->pfSystemMonitorStart != NULL) {
+            CPD_LOG(CPD_LOG_ID_TXT, "\nStarting SystemMonitor!");
+            pCpd->pfSystemMonitorStart();
+        }
+    }
     t0 = getMsecTime();
     if (result == len) {
         pCpd->modemInfo.lastDataSent = t0;
@@ -787,6 +793,10 @@ void *cpdModemReadThreadLoop(void *arg)
             CPD_LOG(CPD_LOG_ID_TXT , "\n%u: !!!Error %d reading from fd=%d Closing fd!\n", getMsecTime(), result, pCpd->modemInfo.modemFd);
             LOGE("%u: !!!Error %d reading from fd=%d Closing fd!\n", getMsecTime(), result, pCpd->modemInfo.modemFd);
             modemClose(&(pCpd->modemInfo.modemFd));
+            if(pCpd->pfSystemMonitorStart != NULL) {
+                CPD_LOG(CPD_LOG_ID_TXT, "\nStarting SystemMonitor!");
+                pCpd->pfSystemMonitorStart();
+            }
             break;
         }
         /* don't waste time with null responses */
@@ -809,11 +819,6 @@ void *cpdModemReadThreadLoop(void *arg)
 //            CPD_LOG(CPD_LOG_ID_TXT, "\r\n%09u,!!! 0 read from modem", getMsecTime());
             usleep(MODEM_POOL_INTERVAL * 1000UL);
         }
-        /* debug test code: */
-        /* test for blocking read()  */
-        // if (result == 0) printf(".");
-/*        printf("."); */
-
     }
     CPD_LOG(CPD_LOG_ID_TXT , "\n %u, !!! EXIT %s()\n", getMsecTime(), __FUNCTION__);
     LOGD("%u, !!! EXIT %s()\n", getMsecTime(), __FUNCTION__);

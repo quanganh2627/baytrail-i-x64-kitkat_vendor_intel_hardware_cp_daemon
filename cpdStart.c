@@ -123,6 +123,7 @@ int cpdStart(pCPD_CONTEXT pCpd)
     }
 
     pCpd->systemMonitor.loopInterval = CPD_SYSTEMMONITOR_INTERVAL;
+    pCpd->pfSystemMonitorStart = (int (*)()) &cpdSystemMonitorStart;
 
      /* for now always return OK, even if init of comm resources fails, sysyem monitor thread will restart them later.. */
     CPD_LOG(CPD_LOG_ID_TXT , "\n  %u: %s()=%d\n", getMsecTime(), __FUNCTION__, result);

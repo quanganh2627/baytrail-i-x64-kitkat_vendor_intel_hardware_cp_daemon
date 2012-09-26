@@ -41,6 +41,8 @@ pthread_mutex_t debugLock;
 #define MAX_FILE_NAME_LEN   (254)
 #define FILE_NAME_BUFF_LEN   (MAX_FILE_NAME_LEN+2)
 #define LOG_FILES_HISTORY_SIZE  (255)
+#define TIMETOSLEEP (5)
+#define OPENLOOP (10)
 
 FILE *pLog = NULL;
 FILE *pModemRxLog = NULL;
@@ -75,7 +77,7 @@ static int cpdDebugFindLastIndex(char *pName)
 
 void cpdDebugInit(char *pPrefix)
 {
-    int result;
+    int result, i;
     char fileName[FILE_NAME_BUFF_LEN];
     int isGps = 0;
     int loggingEnabled = 0; /* reserve values other than 0,1 for future use, expansion, logging granularity */
@@ -111,9 +113,21 @@ void cpdDebugInit(char *pPrefix)
     }
     snprintf(cpdDebugFileName, MAX_FILE_NAME_LEN, "%s", fileName);
     cpdDebugLogIndex = cpdDebugFindLastIndex(cpdDebugFileName);
-
     snprintf(fileName, sizeof(fileName), "%s_%03d.txt", cpdDebugFileName, cpdDebugLogIndex);
-    pLog = fopen(fileName, "w");
+
+    /* check if the filesystem is ready */
+    for(i = 0; i < OPENLOOP; i++) {
+        pLog = fopen(fileName, "w");
+        if(pLog == NULL) {
+            sleep(TIMETOSLEEP);
+        }
+        else {
+            break;
+        }
+    }
+    if(i == OPENLOOP) {
+        LOGD("Failed to create CPD logfiles!\n");
+    }
 
     if (isGps) {
         snprintf(fileName, sizeof(fileName), "%s_%03d_modem_rx.txt", cpdDebugFileName, cpdDebugLogIndex);
@@ -198,9 +212,6 @@ void cpdDebugLog(int logID, const char *pFormat, ...)
         else {
             result = vfprintf(fp, pFormat, args);
         }
-
-//            fwrite(timeStampStr, strlen(timeStampStr), 1, fp);
-//            fprintf(fp,"%s", timeStampStr);
 #else
             result = vfprintf(fp, pFormat, args);
 #endif
@@ -275,7 +286,6 @@ void cpdDebugClose( void )
     if (pXmlTxLog != NULL) {
         fclose(pXmlTxLog);
     }
-//    pthread_mutex_destroy(&debugLock);
 }
 
-#endif /* MARTIN_LOGGING*/
+#endif

@@ -868,6 +868,7 @@ typedef enum {
 
 
 typedef  int (fCPD_SEND_MSG_TO)(void * );
+typedef  int (fCPD_SYSTEM_MONITOR)();
 
 typedef struct {
     int             keepOpen;          /* y/N to keep open */
@@ -971,6 +972,8 @@ typedef struct {
     fCPD_SEND_MSG_TO        *pfMessageHandlerInGps;     /* called in GPS interface, when POS_MEAS request is received */
     /* Interface to GPS imlementation - used in CPD interface on GPS side, used to pass messages/requests from CPD to GPS code */
     fCPD_SEND_MSG_TO        *pfRequestHandlerInGps;     /* called in GPS interface, when POS_MEAS request is received */
+    /* Interface for running cpdSystemMonitorStart() from GPS library */
+    fCPD_SYSTEM_MONITOR     *pfSystemMonitorStart;
 
 
     SYSTEM_MONITOR          systemMonitor;
