@@ -13,6 +13,11 @@ int cpdSystemMonitorStart(void);
 int cpdSystemMonitorStop(pCPD_CONTEXT);
 int cpdStaremActiveMonitorStart( void );
 
+#ifdef MODEM_MANAGER
+void mdm_dwn(void *);
+void mdm_up(void *);
+#endif
+
 #endif
 
 

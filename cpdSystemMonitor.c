@@ -20,6 +20,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/socket.h>
+#include <cutils/sockets.h>
 #include <sys/stat.h>
 #include <poll.h>
 
@@ -33,6 +34,10 @@
 #include "cpdModemReadWrite.h"
 #include "cpdGpsComm.h"
 #include "cpdDebug.h"
+
+#ifdef MODEM_MANAGER
+#include "mmgr_cli.h"
+#endif
 
 /* this is from kernel-mode PM driver */
 #define OS_STATE_NONE           0
@@ -215,6 +220,39 @@ static int cpdSystemMonitorModem(pCPD_CONTEXT pCpd)
     return CPD_OK;
 }
 
+#ifdef MODEM_MANAGER
+    void mdm_dwn(void *ev)
+    {
+        mmgr_cli_event_t* mmgr_Cli = (mmgr_cli_event_t*)ev;
+        pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
+
+        LOGI("\tModem status received: MODEM_DOWN\n");
+        LOGI("\tModem THREAD_STATE_CANT_RUN\n");
+        pCpd->systemMonitor.monitorThreadState = THREAD_STATE_TERMINATED;
+        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_CANT_RUN;
+        LOGI("\tModem Close gsmtty\n");
+        modemClose(&(pCpd->modemInfo.modemFd));
+
+    }
+
+    void mdm_up(void *ev)
+    {
+        mmgr_cli_event_t* mmgr_Cli = (mmgr_cli_event_t*)ev;
+        pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
+
+        LOGI("\tModem status received: MODEM_UP\n");
+        LOGI("\tModem THREAD_STATE_RUNNING\n");
+        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_RUNNING;
+        LOGI("\tModem Open gsmtty\n");
+        pCpd->modemInfo.modemFd = modemOpen(pCpd->modemInfo.modemName, 0);
+        if(pCpd->pfSystemMonitorStart != NULL) {
+            CPD_LOG(CPD_LOG_ID_TXT, "\tStarting SystemMonitor!\n");
+            pCpd->pfSystemMonitorStart();
+        }
+    }
+
+#endif
+
 // return CPD_OK when OK, CPD_NOK otherwise
 static int cpdSystemMonitorRegisterForCP(pCPD_CONTEXT pCpd)
 {
@@ -305,7 +343,7 @@ void cpdSystemMonitorGPSOnOff(pCPD_CONTEXT pCpd)
                 pCpd->request.status.stopSentToGpsAt,
                 cpdIsNumberOfResponsesSufficientForRequest(pCpd),
                 cpdCalcRequredTimneToServiceRequest(pCpd)
-               );
+        );
         if ((pCpd->request.status.requestReceivedAt <= pCpd->request.status.responseFromGpsReceivedAt) &&
             (pCpd->request.status.requestReceivedAt <= pCpd->request.status.responseSentToModemAt))
         {

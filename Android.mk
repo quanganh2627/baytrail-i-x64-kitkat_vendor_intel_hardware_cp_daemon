@@ -8,12 +8,20 @@ LOCAL_PATH := $(call my-dir)
 #
 include $(CLEAR_VARS)
 
+ifeq ($(MODEM_INTERFACE),stmd)
+LOCAL_CFLAGS := -DSTMD_IMPLEMENTED
+else
+LOCAL_CFLAGS := -DMODEM_MANAGER
+endif
+
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_C_INCLUDES:=          \
     external/icu4c/common   \
     external/icu4c/i18n     \
-    external/libxml2/include
+    external/libxml2/include \
+    $(TARGET_OUT_HEADERS)/IFX-modem \
+    $(TARGET_OUT_HEADERS)/IFX-modem/mmgr_cli/c
 
 LOCAL_SRC_FILES :=  cpdd.c  \
 					cpdInit.c  \
@@ -33,6 +41,10 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
 LOCAL_STATIC_LIBRARIES := libc libxml2
 LOCAL_SHARED_LIBRARIES := libicuuc libcutils
+
+ifneq ($(MODEM_INTERFACE),stmd)
+    LOCAL_SHARED_LIBRARIES += libmmgrcli
+endif
 
 LOCAL_MODULE := cpdd
 
@@ -75,12 +87,21 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_TAGS := optional
 
+ifeq ($(MODEM_INTERFACE),stmd)
+LOCAL_CFLAGS := -DSTMD_IMPLEMENTED
+else
+LOCAL_CFLAGS := -DMODEM_MANAGER
+endif
+
+ifeq ($(TARGET_BUILD_VARIANT),eng)
 COMMON_GLOBAL_CFLAGS += -DCPDD_DEBUG_ENABLED
+endif
 
 LOCAL_C_INCLUDES:=          \
     external/icu4c/common   \
     external/icu4c/i18n     \
-    external/libxml2/include
+    external/libxml2/include \
+    $(TARGET_OUT_HEADERS)/IFX-modem
 
 LOCAL_SRC_FILES :=  cpd.c  \
     cpdInit.c  \

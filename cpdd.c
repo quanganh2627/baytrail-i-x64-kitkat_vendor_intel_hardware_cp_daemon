@@ -46,6 +46,12 @@
 #include "cpdSystemMonitor.h"
 #include "cpdDebug.h"
 
+#ifdef MODEM_MANAGER
+#include "mmgr_cli.h"
+
+#define MMGR_CONNECTION_RETRY_TIME_MS 200
+#define MAX_WAIT_FOR_MMGR_CONNECTION_SECONDS 5
+#endif
 
 static int cpdDeamonRun;
 static void cpdDeamonSignalHandler(int sig)
@@ -153,6 +159,10 @@ int main(int argc, char *argv[])
     unsigned int t0;
     sigset_t waitset;
     int sig;
+#ifdef MODEM_MANAGER
+        mmgr_cli_handle_t *mmgr_hdl;
+        char name[] = "cpdSystemMonitor";
+#endif
 
     LOGD("Starting %s", argv[0]);
     t0 = getMsecTime();
@@ -174,6 +184,41 @@ int main(int argc, char *argv[])
     }
     result = cpdStart(pCpd);
     if (result == CPD_OK) {
+#ifdef MODEM_MANAGER
+        mmgr_hdl = NULL;
+        LOGV("LAUNCH mmgr systemMonitor");
+        LOGV("mmgr_cli_create_handle");
+        mmgr_cli_create_handle(&mmgr_hdl, name, pCpd);
+        LOGV("mmgr_cli_subscribe_event - E_MMGR_EVENT_MODEM_UP");
+        mmgr_cli_subscribe_event(mmgr_hdl, mdm_up, E_MMGR_EVENT_MODEM_UP);
+        LOGV("mmgr_cli_subscribe_event - E_MMGR_EVENT_MODEM_DOWN");
+        mmgr_cli_subscribe_event(mmgr_hdl, mdm_dwn,
+                    E_MMGR_EVENT_MODEM_DOWN);
+        LOGV("mmgr_cli_subscribe_event - E_MMGR_EVENT_MODEM_OUT_OF_SERVICE");
+        mmgr_cli_subscribe_event(mmgr_hdl, mdm_dwn,
+                E_MMGR_EVENT_MODEM_OUT_OF_SERVICE);
+
+        uint32_t iMaxConnectionAttempts = MAX_WAIT_FOR_MMGR_CONNECTION_SECONDS * 1000 / MMGR_CONNECTION_RETRY_TIME_MS;
+
+        int ret = 0;
+
+        while (iMaxConnectionAttempts-- != 0) {
+
+            // Try to connect
+            LOGV("CPDD - try mmgr_cli_connect");
+            ret = mmgr_cli_connect(mmgr_hdl);
+
+            if (ret == E_ERR_CLI_SUCCEED) {
+
+                break;
+            }
+            LOGV("Delaying mmgr_cli_connect");
+            usleep(MMGR_CONNECTION_RETRY_TIME_MS * 1000);
+        }
+
+
+#endif
+
         result = cpdSystemMonitorStart();
         if (result == CPD_OK) {
             sigemptyset(&waitset);
@@ -190,6 +235,13 @@ int main(int argc, char *argv[])
     }
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:STOP\n", getMsecTime());
     LOGV("%u:STOP", getMsecTime());
+
+#ifdef MODEM_MANAGER
+    LOGV("STOP mmgr_cli disconnect");
+    mmgr_cli_disconnect(mmgr_hdl);
+    mmgr_cli_delete_handle(mmgr_hdl);
+#endif
+
     cpdStop(pCpd);
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:END\n", getMsecTime());
     LOGD("%u:END", getMsecTime());
