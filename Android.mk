@@ -1,11 +1,7 @@
 #
 # CP DAEMON 
 #
-ifeq ($(USE_GPS_CP_DAEMON),true)
-ifneq (,$(filter true,$(BOARD_HAVE_GPS_CSR_GSD4T) $(BOARD_HAVE_GPS_CSR_GSD5T)))
-
 LOCAL_PATH := $(call my-dir)
-
 
 #
 # cpdd - e911 CP daemon
@@ -77,12 +73,9 @@ include $(BUILD_STATIC_LIBRARY)
 #
 include $(CLEAR_VARS)
 
-LOCAL_MODULE_TAGS := eng
+LOCAL_MODULE_TAGS := optional
 
-ifeq ($(TARGET_BUILD_VARIANT),eng)
 COMMON_GLOBAL_CFLAGS += -DCPDD_DEBUG_ENABLED
-endif
-
 
 LOCAL_C_INCLUDES:=          \
     external/icu4c/common   \
@@ -111,5 +104,3 @@ LOCAL_SHARED_LIBRARIES := libicuuc libcutils
 LOCAL_MODULE := cpd
 
 include $(BUILD_EXECUTABLE)
-endif
-endif
