@@ -983,5 +983,11 @@ typedef struct {
 
 #endif
 
+#ifdef MODEM_MANAGER
+void mdm_dwn(void *);
+void mdm_up(void *);
+void mdm_shtdwn(void *);
+void mdm_cld_rst(void *);
+#endif
 
 
