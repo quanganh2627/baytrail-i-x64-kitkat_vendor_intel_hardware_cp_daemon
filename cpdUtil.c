@@ -163,7 +163,7 @@ int cpdCreateThread()
 /*
  * Read gps.conf file and check if logging is enabled.
  */
-int cpdParseConfigFile(char *config_file)
+int cpdParseConfigFile(char *config_file, char* filePath)
 {
     FILE *fp = NULL;
     FILE *fp_test = NULL;
@@ -204,6 +204,10 @@ int cpdParseConfigFile(char *config_file)
         if (strcmp(config_param, "LOGGING_ON") == 0)
         {
             logging_on = atoi(config_value);
+        }
+        else if (strcmp(config_param, "CPD_LOG") == 0)
+        {
+            strcpy(filePath, config_value);
         }
         else if (strcmp(config_param, "TEST_PATH") == 0)
         {

@@ -37,7 +37,6 @@
 pthread_mutex_t debugLock;
 #endif
 
-#define CPD_LOG_DIR     "/data/logs/gps"
 #define MAX_FILE_NAME_LEN   (254)
 #define FILE_NAME_BUFF_LEN   (MAX_FILE_NAME_LEN+2)
 #define LOG_FILES_HISTORY_SIZE  (255)
@@ -85,10 +84,10 @@ void cpdDebugInit(char *pPrefix)
     fileName[0] = 0;
 
     /* check if logging is enabled */
-    loggingEnabled = cpdParseConfigFile(GPS_CFG_FILENAME);
+    loggingEnabled = cpdParseConfigFile(GPS_CFG_FILENAME, fileName);
     if (loggingEnabled > 0) {
         /* GPS library also uses this directory to store log files */
-        result = mkdir(CPD_LOG_DIR, 0777);
+        result = mkdir(fileName, 0777);
     }
     pLog = NULL;
     pModemRxLog = NULL;
@@ -103,13 +102,13 @@ void cpdDebugInit(char *pPrefix)
 
     pthread_mutex_init(&debugLock, NULL);
     if (pPrefix != NULL) {
-        snprintf(fileName, MAX_FILE_NAME_LEN, "%s/log_%s", CPD_LOG_DIR, pPrefix);
+        snprintf(fileName, MAX_FILE_NAME_LEN, "%s/log_%s", fileName, pPrefix);
         if (strcmp(pPrefix, "GPS") != 0) {
                 isGps = 1;
         }
     }
     else {
-        snprintf(fileName, MAX_FILE_NAME_LEN, "%s/log_CPDD", CPD_LOG_DIR);
+        snprintf(fileName, MAX_FILE_NAME_LEN, "%s/log_CPDD", fileName);
     }
     snprintf(cpdDebugFileName, MAX_FILE_NAME_LEN, "%s", fileName);
     cpdDebugLogIndex = cpdDebugFindLastIndex(cpdDebugFileName);

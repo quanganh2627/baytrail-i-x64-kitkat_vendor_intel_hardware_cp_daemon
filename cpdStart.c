@@ -38,10 +38,13 @@
 /* debug code for MUX bug: */
 #define STARTUP_DELAY   (10000UL)
 #define USE_LOCAL_SOCKETS 1
+#define MAX_FILE_NAME_LEN   (254)
+#define FILE_NAME_BUFF_LEN   (MAX_FILE_NAME_LEN+2)
 
 int cpdStart(pCPD_CONTEXT pCpd)
 {
     int result = CPD_OK;
+    char fileName[FILE_NAME_BUFF_LEN];
     int r;
     int tcpIpSocketEnable;
 
@@ -94,7 +97,7 @@ int cpdStart(pCPD_CONTEXT pCpd)
         }
     }
     /* check if opening transparent socket server for modem comm is enabled */
-    tcpIpSocketEnable = cpdParseConfigFile(GPS_CFG_FILENAME);
+    tcpIpSocketEnable = cpdParseConfigFile(GPS_CFG_FILENAME, fileName);
     if (tcpIpSocketEnable > 0) {
         pCpd->ssModemComm.type = SOCKET_SERVER_TYPE_SERVER;
         pCpd->ssModemComm.initialized = CPD_NOK;

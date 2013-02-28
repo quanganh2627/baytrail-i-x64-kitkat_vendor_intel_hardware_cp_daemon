@@ -18,6 +18,6 @@ int getTimeString(char *, int );
 int cpdMoveBufferLeft(char *pB, int *pIndex, int left);
 int readUserChoice(void);
 int cpdFindString(char *pB, int len, char *findMe, int lenStr);
-int cpdParseConfigFile(char *config_file);
+int cpdParseConfigFile(char *config_file, char *filePath);
 #endif   /* _CPDUTIL_H_ */
 
