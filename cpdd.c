@@ -223,8 +223,10 @@ int main(int argc, char *argv[])
 
 #endif
 
+#ifndef MODEM_MANAGER
         result = cpdSystemMonitorStart();
         if (result == CPD_OK) {
+#endif
             sigemptyset(&waitset);
             sigaddset(&waitset, SIGHUP);
             sigaddset(&waitset, SIGTERM);
@@ -235,7 +237,9 @@ int main(int argc, char *argv[])
             sigwait(&waitset, &sig);
             CPD_LOG(CPD_LOG_ID_TXT, "\n%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
             LOGD("%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
-         }
+#ifndef MODEM_MANAGER
+        }
+#endif
     }
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:STOP\n", getMsecTime());
     LOGV("%u:STOP", getMsecTime());
