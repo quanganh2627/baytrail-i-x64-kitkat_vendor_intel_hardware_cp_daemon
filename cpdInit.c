@@ -37,6 +37,7 @@ pCPD_CONTEXT cpdInit(void)
     snprintf((char*) (cpdContext.modemInfo.modemName), MODEM_NAME_MAX_LEN, "%s" , MODEM_NAME);
     cpdContext.modemInfo.pModemRxBuffer = NULL;
     cpdContext.modemInfo.pModemTxBuffer = NULL;
+    cpdContext.modemInfo.modemFd = 0;
 
 
     cpdContext.xmlRxBuffer.pXmlBuffer = NULL;

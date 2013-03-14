@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-//#define LOG_NDEBUG 0    /* control debug logging */
+#define LOG_NDEBUG 1    /* control debug logging */
 #define LOG_TAG "CPDD"
 
 
@@ -278,10 +278,8 @@ int main(int argc, char *argv[])
         pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
 
         LOGI("\tModem status received: MODEM_UP\n");
-        LOGI("\tModem THREAD_STATE_RUNNING\n");
-        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_RUNNING;
-        LOGI("\tModem Open gsmtty\n");
-        pCpd->modemInfo.modemFd = modemOpen(pCpd->modemInfo.modemName, 0);
+        LOGI("\tModem THREAD_STATE_OFF\n");
+        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_OFF;
         if(pCpd->pfSystemMonitorStart != NULL)
         {
             CPD_LOG(CPD_LOG_ID_TXT, "\tStarting SystemMonitor!\n");

@@ -207,7 +207,7 @@ static int cpdSystemMonitorModem(pCPD_CONTEXT pCpd)
         return CPD_OK;
     }
     if ((pCpd->modemInfo.modemReadThreadState != THREAD_STATE_RUNNING) ||
-        (pCpd->modemInfo.modemFd < 0)) {
+        (pCpd->modemInfo.modemFd <= 0)) {
         if (getMsecDt(pCpd->modemInfo.keepOpenCtrl.lastOpenAt) >= pCpd->modemInfo.keepOpenCtrl.keepOpenRetryInterval) {
             result = cpdModemOpen(pCpd);
             return result;
