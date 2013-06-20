@@ -38,6 +38,7 @@
 #include "cpdInit.h"
 #include "cpdStart.h"
 #include "cpdModem.h"
+#include "cpdMMgr.h"
 #include "cpdUtil.h"
 #include "cpdModemReadWrite.h"
 #include "cpdSocketServer.h"
@@ -45,15 +46,6 @@
 #include "cpdXmlFormatter.h"
 #include "cpdSystemMonitor.h"
 #include "cpdDebug.h"
-
-#ifdef MODEM_MANAGER
-#include "mmgr_cli.h"
-
-#define MMGR_CONNECTION_RETRY_TIME_MS 200
-#define MAX_WAIT_FOR_MMGR_CONNECTION_SECONDS 5
-mmgr_cli_handle_t *mmgr_hdl;
-char name[] = "cpd Daemon";
-#endif
 
 static int cpdDeamonRun;
 static void cpdDeamonSignalHandler(int sig)
@@ -182,51 +174,11 @@ int main(int argc, char *argv[])
     }
     result = cpdStart(pCpd);
     if (result == CPD_OK) {
-#ifdef MODEM_MANAGER
-        mmgr_hdl = NULL;
-        LOGV("LAUNCH mmgr systemMonitor");
-        LOGV("mmgr_cli_create_handle");
-        mmgr_cli_create_handle(&mmgr_hdl, name, pCpd);
-        LOGV("mmgr_cli_subscribe_event - E_MMGR_EVENT_MODEM_UP");
-        mmgr_cli_subscribe_event(mmgr_hdl, mdm_up, E_MMGR_EVENT_MODEM_UP);
-        LOGV("mmgr_cli_subscribe_event - E_MMGR_EVENT_MODEM_DOWN");
-        mmgr_cli_subscribe_event(mmgr_hdl, mdm_dwn,
-                    E_MMGR_EVENT_MODEM_DOWN);
-        LOGV("mmgr_cli_subscribe_event - E_MMGR_EVENT_MODEM_OUT_OF_SERVICE");
-        mmgr_cli_subscribe_event(mmgr_hdl, mdm_dwn,
-                E_MMGR_EVENT_MODEM_OUT_OF_SERVICE);
-        LOGV("mmgr_cli_subscribe_event - E_MMGR_NOTIFY_MODEM_SHUTDOWN");
-        mmgr_cli_subscribe_event(mmgr_hdl, mdm_shtdwn,
-                E_MMGR_NOTIFY_MODEM_SHUTDOWN);
-        LOGV("mmgr_cli_subscribe_event - E_MMGR_NOTIFY_MODEM_COLD_RESET");
-        mmgr_cli_subscribe_event(mmgr_hdl, mdm_cld_rst,
-                E_MMGR_NOTIFY_MODEM_COLD_RESET);
-
-        uint32_t iMaxConnectionAttempts = MAX_WAIT_FOR_MMGR_CONNECTION_SECONDS * 1000 / MMGR_CONNECTION_RETRY_TIME_MS;
-
-        int ret = 0;
-
-        while (iMaxConnectionAttempts-- != 0) {
-
-            // Try to connect
-            LOGV("CPDD - try mmgr_cli_connect");
-            ret = mmgr_cli_connect(mmgr_hdl);
-
-            if (ret == E_ERR_CLI_SUCCEED) {
-
-                break;
-            }
-            LOGV("Delaying mmgr_cli_connect");
-            usleep(MMGR_CONNECTION_RETRY_TIME_MS * 1000);
-        }
-
-
-#endif
-
-#ifndef MODEM_MANAGER
-        result = cpdSystemMonitorStart();
+        /* Creating MMgr threads if MMgr is available or
+         * Starting SystemMonitor without Mmgr only.
+         */
+        result = cpdStartMMgrMonitor();
         if (result == CPD_OK) {
-#endif
             sigemptyset(&waitset);
             sigaddset(&waitset, SIGHUP);
             sigaddset(&waitset, SIGTERM);
@@ -237,18 +189,10 @@ int main(int argc, char *argv[])
             sigwait(&waitset, &sig);
             CPD_LOG(CPD_LOG_ID_TXT, "\n%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
             LOGD("%u:Deamon exited WAIT with signal %d \n", getMsecTime(), sig);
-#ifndef MODEM_MANAGER
         }
-#endif
     }
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:STOP\n", getMsecTime());
     LOGV("%u:STOP", getMsecTime());
-
-#ifdef MODEM_MANAGER
-    LOGV("STOP mmgr_cli disconnect");
-    mmgr_cli_disconnect(mmgr_hdl);
-    mmgr_cli_delete_handle(mmgr_hdl);
-#endif
 
     cpdStop(pCpd);
     CPD_LOG(CPD_LOG_ID_TXT, "\n%u:END\n", getMsecTime());
@@ -258,66 +202,4 @@ int main(int argc, char *argv[])
     return 0;
 
 }
-
-#ifdef MODEM_MANAGER
-    void mdm_dwn(void *ev) {
-        mmgr_cli_event_t* mmgr_Cli = (mmgr_cli_event_t*)ev;
-        pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
-
-        LOGI("\tModem status received: MODEM_DOWN\n");
-        LOGI("\tModem THREAD_STATE_CANT_RUN\n");
-        pCpd->systemMonitor.monitorThreadState = THREAD_STATE_TERMINATED;
-        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_CANT_RUN;
-        LOGI("\tModem Close gsmtty\n");
-        modemClose(&(pCpd->modemInfo.modemFd));
-
-    }
-
-    void mdm_up(void *ev) {
-        mmgr_cli_event_t* mmgr_Cli = (mmgr_cli_event_t*)ev;
-        pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
-
-        LOGI("\tModem status received: MODEM_UP\n");
-        LOGI("\tModem THREAD_STATE_OFF\n");
-        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_OFF;
-        if(pCpd->pfSystemMonitorStart != NULL)
-        {
-            CPD_LOG(CPD_LOG_ID_TXT, "\tStarting SystemMonitor!\n");
-            pCpd->pfSystemMonitorStart();
-        }
-    }
-
-    void mdm_shtdwn(void *ev) {
-        mmgr_cli_event_t* mmgr_Cli = (mmgr_cli_event_t*)ev;
-        pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
-
-        LOGI("\tModem status received: MODEM_SHUTDOWN\n");
-        LOGI("\tModem THREAD_STATE_CANT_RUN\n");
-        pCpd->systemMonitor.monitorThreadState = THREAD_STATE_TERMINATED;
-        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_CANT_RUN;
-        LOGI("\tModem Close gsmtty\n");
-        modemClose(&(pCpd->modemInfo.modemFd));
-
-        mmgr_cli_requests_t request =
-                {   .id = E_MMGR_ACK_MODEM_SHUTDOWN};
-        mmgr_cli_send_msg(mmgr_hdl, &request);
-    }
-
-    void mdm_cld_rst(void *ev) {
-        mmgr_cli_event_t* mmgr_Cli = (mmgr_cli_event_t*)ev;
-        pCPD_CONTEXT pCpd = (CPD_CONTEXT *)mmgr_Cli->context;
-
-        LOGI("\tModem status received: MODEM_COLD_RESET\n");
-        LOGI("\tModem THREAD_STATE_CANT_RUN\n");
-        pCpd->systemMonitor.monitorThreadState = THREAD_STATE_TERMINATED;
-        pCpd->modemInfo.modemReadThreadState = THREAD_STATE_CANT_RUN;
-        LOGI("\tModem Close gsmtty\n");
-        modemClose(&(pCpd->modemInfo.modemFd));
-
-        mmgr_cli_requests_t request =
-                {   .id = E_MMGR_ACK_MODEM_COLD_RESET};
-        mmgr_cli_send_msg(mmgr_hdl, &request);
-    }
-
-#endif
 

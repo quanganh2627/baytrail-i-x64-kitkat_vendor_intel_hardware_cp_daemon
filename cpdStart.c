@@ -34,6 +34,7 @@
 #include "cpdSystemMonitor.h"
 #include "cpdUtil.h"
 #include "cpdDebug.h"
+#include "cpdMMgr.h"
 
 /* debug code for MUX bug: */
 #define STARTUP_DELAY   (10000UL)
@@ -140,6 +141,10 @@ int cpdStart(pCPD_CONTEXT pCpd)
     int result = CPD_OK;
     CPD_LOG(CPD_LOG_ID_TXT , "\n%u: %s()\n", getMsecTime(), __FUNCTION__);
     LOGD("%u: %s()\n", getMsecTime(), __FUNCTION__);
+
+    /* Stopping MMgr threads if any */
+    cpdStopMMgrMonitor();
+
     /* the end, stop monitoring service before closing connections */
     cpdSystemMonitorStop(pCpd);
 

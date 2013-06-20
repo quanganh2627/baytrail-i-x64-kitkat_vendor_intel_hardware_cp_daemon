@@ -792,7 +792,10 @@ void *cpdModemReadThreadLoop(void *arg)
         if (result < 0) {
             CPD_LOG(CPD_LOG_ID_TXT , "\n%u: !!!Error %d reading from fd=%d Closing fd!\n", getMsecTime(), result, pCpd->modemInfo.modemFd);
             LOGE("%u: !!!Error %d reading from fd=%d Closing fd!\n", getMsecTime(), result, pCpd->modemInfo.modemFd);
+            /* Avoid cross open/close */
+            pthread_mutex_lock(&(pCpd->modemInfo.modemFdLock));
             modemClose(&(pCpd->modemInfo.modemFd));
+            pthread_mutex_unlock(&(pCpd->modemInfo.modemFdLock));
             if(pCpd->pfSystemMonitorStart != NULL) {
                 CPD_LOG(CPD_LOG_ID_TXT, "\nStarting SystemMonitor!");
                 pCpd->pfSystemMonitorStart();
@@ -926,7 +929,13 @@ int cpdModemOpen(pCPD_CONTEXT pCpd)
                 return result;
             }
         }
-        pCpd->modemInfo.modemFd = modemOpen(pCpd->modemInfo.modemName, 0);
+
+        pthread_mutex_lock(&(pCpd->modemInfo.modemFdLock));
+        if (pCpd->modemInfo.modemFd <= 0) {
+            pCpd->modemInfo.modemFd = modemOpen(pCpd->modemInfo.modemName, 0);
+        }
+        pthread_mutex_unlock(&(pCpd->modemInfo.modemFdLock));
+
         CPD_LOG(CPD_LOG_ID_TXT,"\n%s(%s) = %d", __FUNCTION__, pCpd->modemInfo.modemName, pCpd->modemInfo.modemFd);
         pCpd->modemInfo.keepOpenCtrl.keepOpenRetryCount++;
         pCpd->modemInfo.keepOpenCtrl.lastOpenAt = getMsecTime();
@@ -969,7 +978,10 @@ int cpdModemClose(pCPD_CONTEXT pCpd)
     pCpd->modemInfo.keepOpenCtrl.keepOpen = 0;
     pCpd->modemInfo.modemReadThreadState = THREAD_STATE_TERMINATE;
     usleep(100);
+    /* Avoid cross open/close */
+    pthread_mutex_lock(&(pCpd->modemInfo.modemFdLock));
     modemClose(&(pCpd->modemInfo.modemFd));
+    pthread_mutex_unlock(&(pCpd->modemInfo.modemFdLock));
     usleep(1000);
     if ((pCpd->modemInfo.modemReadThreadState == THREAD_STATE_TERMINATED) ||
         (pCpd->modemInfo.modemReadThreadState == THREAD_STATE_OFF)) {

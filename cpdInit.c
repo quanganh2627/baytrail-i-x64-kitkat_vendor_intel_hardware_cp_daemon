@@ -38,6 +38,7 @@ pCPD_CONTEXT cpdInit(void)
     cpdContext.modemInfo.pModemRxBuffer = NULL;
     cpdContext.modemInfo.pModemTxBuffer = NULL;
     cpdContext.modemInfo.modemFd = 0;
+    pthread_mutex_init(&(cpdContext.modemInfo.modemFdLock), NULL);
 
 
     cpdContext.xmlRxBuffer.pXmlBuffer = NULL;

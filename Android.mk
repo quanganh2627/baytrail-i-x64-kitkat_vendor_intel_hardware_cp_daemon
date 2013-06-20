@@ -1,5 +1,5 @@
 #
-# CP DAEMON 
+# CP DAEMON
 #
 LOCAL_PATH := $(call my-dir)
 
@@ -35,7 +35,8 @@ LOCAL_SRC_FILES :=  cpdd.c  \
 					cpdXmlFormatter.c\
 					cpdGpsComm.c  \
 					cpdSocketServer.c \
-					cpdSystemMonitor.c
+					cpdSystemMonitor.c \
+					cpdMMgr.c
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
@@ -69,7 +70,7 @@ LOCAL_SRC_FILES += \
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
-LOCAL_STATIC_LIBRARIES := libc 
+LOCAL_STATIC_LIBRARIES := libc
 LOCAL_SHARED_LIBRARIES := libicuuc libcutils
 
 LOCAL_MODULE := libCpd
@@ -108,6 +109,7 @@ LOCAL_SRC_FILES :=  cpd.c  \
     cpdStart.c \
     cpdUtil.c \
     cpdModem.c \
+    cpdMMgr.c \
     cpdModemReadWrite.c \
     cpdXmlParser.c \
     cpdXmlUtils.c \
@@ -121,6 +123,10 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)
 
 LOCAL_STATIC_LIBRARIES := libc libxml2
 LOCAL_SHARED_LIBRARIES := libicuuc libcutils
+
+ifneq ($(MODEM_INTERFACE),stmd)
+    LOCAL_SHARED_LIBRARIES += libmmgrcli
+endif
 
 LOCAL_MODULE := cpd
 

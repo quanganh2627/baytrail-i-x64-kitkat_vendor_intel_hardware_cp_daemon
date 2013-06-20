@@ -896,6 +896,8 @@ typedef struct {
     int                 modemRxBufferSize;
     int                 modemRxBufferIndex;
 
+    pthread_mutex_t     modemFdLock;
+
     int                 waitingForResponse;
     int                 waitForThisResponse;
     int                 haveResponse;
@@ -981,13 +983,6 @@ typedef struct {
 
 } CPD_CONTEXT, *pCPD_CONTEXT;
 
-#endif
 
-#ifdef MODEM_MANAGER
-void mdm_dwn(void *);
-void mdm_up(void *);
-void mdm_shtdwn(void *);
-void mdm_cld_rst(void *);
 #endif
-
 
