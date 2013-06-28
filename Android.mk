@@ -17,9 +17,9 @@ endif
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_C_INCLUDES:=          \
-    external/icu4c/common   \
-    external/icu4c/i18n     \
-    external/libxml2/include \
+    $(call include-path-for, icu4c-common) \
+    $(call include-path-for, icu4c-i18n) \
+    $(call include-path-for, libxml2) \
     $(TARGET_OUT_HEADERS)/IFX-modem \
     $(TARGET_OUT_HEADERS)/IFX-modem/mmgr_cli/c
 
